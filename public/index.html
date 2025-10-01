@@ -1,0 +1,2351 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PetCare Pro - Sistema de Agendamento</title>
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/popper.js@1"></script>
+    <script src="https://unpkg.com/tippy.js@5"></script>
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --primary-dark: #1d4ed8;
+            --primary-light: #3b82f6;
+            --secondary-color: #64748b;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --background-color: #f8fafc;
+            --surface-color: #ffffff;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --border-color: #e2e8f0;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            --radius-sm: 0.375rem;
+            --radius-md: 0.5rem;
+            --radius-lg: 0.75rem;
+            --radius-xl: 1rem;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-primary);
+            line-height: 1.6;
+            font-size: 14px;
+        }
+
+        .container {
+            max-width: 1440px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        /* Header */
+        .header {
+            background: var(--surface-color);
+            border-bottom: 1px solid var(--border-color);
+            padding: 20px 0;
+            margin-bottom: 32px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(8px);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+
+        .logo i {
+            font-size: 32px;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            margin-left: auto;
+        }
+
+        .notification-bell {
+            position: relative;
+            cursor: pointer;
+            color: var(--text-secondary);
+        }
+
+        .notification-bell .fa-bell {
+            font-size: 20px;
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -8px;
+            width: 12px;
+            height: 12px;
+            background-color: var(--danger-color);
+            border-radius: 50%;
+            border: 2px solid var(--surface-color);
+            display: none; /* Hidden by default */
+        }
+
+        #notificationDropdown {
+            position: absolute;
+            top: 30px;
+            right: 0;
+            width: 300px;
+            background-color: var(--surface-color);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--border-color);
+            display: none;
+            z-index: 110;
+        }
+
+        .notification-item {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .notification-item:last-child {
+            border-bottom: none;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: var(--radius-lg);
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .status-indicator.connected {
+            background-color: #dcfce7;
+            color: #166534;
+        }
+
+        .status-indicator.disconnected {
+            background-color: #fef2f2;
+            color: #991b1b;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.connected {
+            background-color: var(--success-color);
+        }
+
+        .status-dot.disconnected {
+            background-color: var(--danger-color);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Dashboard Cards */
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+            margin-bottom: 40px;
+        }
+
+        .metric-card {
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-xl);
+            padding: 24px;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--primary-light);
+        }
+
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary-color), var(--primary-light));
+        }
+
+        .metric-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 16px;
+        }
+
+        .metric-title {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .metric-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: var(--radius-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: var(--primary-color);
+            background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+        }
+
+        .metric-value {
+            font-size: 36px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .metric-change {
+            font-size: 12px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .metric-change.positive {
+            color: var(--success-color);
+        }
+
+        .metric-change.negative {
+            color: var(--danger-color);
+        }
+
+        /* Main Content */
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 32px;
+            margin-bottom: 40px;
+        }
+
+        @media (max-width: 1200px) {
+            .main-content {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Section Cards */
+        .section-card {
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-xl);
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .section-header {
+            padding: 24px 24px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-content {
+            padding: 0 24px 24px;
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            border: none;
+            border-radius: var(--radius-md);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-secondary {
+            background: var(--background-color);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: var(--surface-color);
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        .btn-danger {
+            background: var(--danger-color);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        /* Lists */
+        .item-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .list-item {
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 16px;
+            transition: all 0.2s ease;
+            background: var(--surface-color);
+        }
+
+        .list-item:hover {
+            border-color: var(--primary-color);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .item-title {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .item-price {
+            font-weight: 600;
+            color: var(--primary-color);
+            font-size: 16px;
+        }
+
+        .item-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .item-meta {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        /* Calendar Section */
+        .calendar-section {
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-xl);
+            padding: 24px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .calendar-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .calendar-controls {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .filter-label {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        #calendar-container {
+            height: 80vh;
+            min-height: 600px;
+        }
+
+        #calendar {
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+        }
+
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .form-input,
+        .form-select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            font-size: 14px;
+            transition: all 0.2s ease;
+            background: var(--surface-color);
+        }
+
+        .form-input:focus,
+        .form-select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgb(37 99 235 / 0.1);
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--surface-color);
+            border-radius: var(--radius-xl);
+            max-width: 500px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: modalSlideIn 0.3s ease;
+            box-shadow: var(--shadow-lg);
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                transform: translateY(-50px) scale(0.95);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0) scale(1);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            padding: 24px 24px 0;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 24px;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 24px;
+        }
+
+        .modal-body {
+            padding: 0 24px;
+        }
+
+        .modal-footer {
+            padding: 24px;
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            border-top: 1px solid var(--border-color);
+            margin-top: 24px;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 24px;
+        }
+
+        .tab-link {
+            padding: 12px 20px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -1px;
+            transition: all 0.2s ease;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .tab-link.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 16px;
+            }
+
+            .header-content {
+                flex-direction: column;
+                gap: 16px;
+                text-align: center;
+            }
+
+            .dashboard {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+
+            .calendar-header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .calendar-controls {
+                justify-content: space-between;
+            }
+
+            .modal-content {
+                margin: 20px;
+                max-height: calc(100vh - 40px);
+            }
+        }
+
+        /* Custom FullCalendar Styles */
+        .fc-theme-standard .fc-scrollgrid {
+            border-radius: var(--radius-lg);
+            border-color: var(--border-color);
+        }
+
+        .fc-theme-standard .fc-scrollgrid-section > * {
+            border-color: var(--border-color);
+        }
+
+        .fc-theme-standard .fc-col-header-cell {
+            background: var(--background-color);
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .fc-theme-standard .fc-daygrid-day {
+            background: var(--surface-color);
+        }
+
+        .fc-theme-standard .fc-daygrid-day:hover {
+            background: var(--background-color);
+        }
+
+        .fc-event {
+            background: var(--primary-color) !important;
+            border-color: var(--primary-dark) !important;
+            border-radius: var(--radius-sm) !important;
+            font-size: 12px !important;
+            box-shadow: var(--shadow-sm);
+            cursor: pointer;
+        }
+
+        /* Loading States */
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border-color);
+            border-top: 2px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Empty States */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-secondary);
+        }
+
+        .empty-state i {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .empty-state h3 {
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .empty-state p {
+            font-size: 14px;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 250px;
+            background-color: var(--surface-color);
+            border-right: 1px solid var(--border-color);
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100%;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 40px;
+        }
+
+        .sidebar .logo {
+            margin-bottom: 40px;
+        }
+
+        .menu {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 12px 16px;
+            border-radius: var(--radius-md);
+            color: var(--text-secondary);
+            font-weight: 500;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+
+        .menu-item:hover {
+            background-color: var(--background-color);
+            color: var(--primary-color);
+        }
+
+        .menu-item.active {
+            background-color: var(--primary-light);
+            color: white;
+        }
+
+        .main-container {
+            margin-left: 250px;
+        }
+
+        .page-content {
+            display: none;
+        }
+
+        .page-content.active {
+            display: block;
+        }
+
+        /* Responsive Sidebar */
+        @media (max-width: 768px) {
+            .sidebar {
+                left: -250px;
+                transition: left 0.3s ease;
+                z-index: 1100;
+            }
+
+            .sidebar.active {
+                left: 0;
+            }
+
+            .main-container {
+                margin-left: 0;
+            }
+
+            .header {
+                padding: 16px 0;
+            }
+
+            .header-content {
+                justify-content: space-between;
+            }
+
+            .hamburger-menu {
+                display: block;
+                font-size: 24px;
+                cursor: pointer;
+            }
+        }
+
+        .hamburger-menu {
+            display: none;
+        }
+
+        .fc-timegrid-now-indicator-line {
+            border-color: red !important;
+            border-width: 2px 0px 0px;
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="logo">
+            <i class="fas fa-paw"></i>
+            <span>PetCare Pro</span>
+        </div>
+        <ul class="menu">
+            <li><a href="#" class="menu-item active" data-target="dashboard-section"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+            <li><a href="#" class="menu-item" data-target="calendar-section"><i class="fas fa-calendar-alt"></i> Agenda</a></li>
+            <li><a href="#" class="menu-item" data-target="services-section"><i class="fas fa-cut"></i> Serviços</a></li>
+            <li><a href="#" class="menu-item" data-target="professionals-section"><i class="fas fa-user-tie"></i> Profissionais</a></li>
+            <li><a href="#" class="menu-item" data-target="customers-section"><i class="fas fa-users"></i> Clientes</a></li>
+            <li><a href="#" class="menu-item" data-target="settings-section"><i class="fas fa-cog"></i> Configurações</a></li>
+        </ul>
+    </div>
+    <div class="main-container">
+        <div class="header">
+            <div class="container">
+                <div class="header-content">
+                    <div class="hamburger-menu">
+                        <i class="fas fa-bars"></i>
+                    </div>
+                    <div class="header-actions">
+                        <div class="notification-bell" id="notificationBell">
+                            <i class="fas fa-bell"></i>
+                            <div class="notification-badge" id="notificationBadge"></div>
+                            <div id="notificationDropdown"></div>
+                        </div>
+                        <div class="status-indicator" id="whatsappStatusIndicator">
+                            <div class="status-dot" id="statusDot"></div>
+                            <span id="whatsappStatusText">Verificando...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="page-content active" id="dashboard-section">
+                <!-- Dashboard Metrics -->
+                <div class="dashboard">
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <div>
+                                <div class="metric-title">Agendamentos Hoje</div>
+                                <div class="metric-value" id="todayCount">0</div>
+                                <div class="metric-change positive">
+                                    <i class="fas fa-arrow-up"></i>
+                                    <span>+12% vs ontem</span>
+                                </div>
+                            </div>
+                            <div class="metric-icon">
+                                <i class="fas fa-calendar-day"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <div>
+                                <div class="metric-title">Total de Agendamentos</div>
+                                <div class="metric-value" id="totalCount">0</div>
+                                <div class="metric-change positive">
+                                    <i class="fas fa-arrow-up"></i>
+                                    <span>+8% este mês</span>
+                                </div>
+                            </div>
+                            <div class="metric-icon">
+                                <i class="fas fa-calendar-check"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <div>
+                                <div class="metric-title">Agendamentos Pendentes</div>
+                                <div class="metric-value" id="pendingCount">0</div>
+                                <div class="metric-change">
+                                    <i class="fas fa-clock"></i>
+                                    <span>Aguardando confirmação</span>
+                                </div>
+                            </div>
+                            <div class="metric-icon">
+                                <i class="fas fa-hourglass-half"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="page-content" id="calendar-section">
+                <!-- Calendar Section -->
+                <div class="calendar-section">
+                    <div class="calendar-header">
+                        <h2 class="calendar-title">
+                            <i class="fas fa-calendar-alt"></i>
+                            Agenda
+                        </h2>
+                        <div class="calendar-controls">
+                            <div class="filter-group">
+                                <label class="filter-label">Filtrar por profissional</label>
+                                <select class="form-select" id="professionalFilter" onchange="loadAppointments()">
+                                    <option value="all">Todos os profissionais</option>
+                                </select>
+                            </div>
+                            <button class="btn btn-primary" onclick="openBookingModal()">
+                                <i class="fas fa-plus"></i>
+                                Novo Agendamento
+                            </button>
+                        </div>
+                    </div>
+                    <div id="calendar-container">
+                        <div id="calendar"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="page-content" id="services-section">
+                <!-- Services Section -->
+                <div class="section-card">
+                    <div class="section-header">
+                        <h2 class="section-title">
+                            <i class="fas fa-cut"></i>
+                            Serviços
+                        </h2>
+                                            <button class="btn btn-primary btn-sm" onclick="openServiceModal(true)">
+                                                <i class="fas fa-plus"></i>
+                                                Novo Serviço
+                                            </button>                    </div>
+                    <div class="section-content">
+                        <div class="item-list" id="servicesList">
+                            <div class="empty-state">
+                                <i class="fas fa-cut"></i>
+                                <h3>Nenhum serviço cadastrado</h3>
+                                <p>Adicione serviços para começar</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="page-content" id="professionals-section">
+                <!-- Professionals Section -->
+                <div class="section-card">
+                    <div class="section-header">
+                        <h2 class="section-title">
+                            <i class="fas fa-user-tie"></i>
+                            Profissionais
+                        </h2>
+                        <button class="btn btn-primary btn-sm" onclick="openProfessionalModal()">
+                            <i class="fas fa-plus"></i>
+                            Novo Profissional
+                        </button>
+                    </div>
+                    <div class="section-content">
+                        <div class="item-list" id="professionalsList">
+                            <div class="empty-state">
+                                <i class="fas fa-user-tie"></i>
+                                <h3>Nenhum profissional cadastrado</h3>
+                                <p>Adicione profissionais para começar</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="page-content" id="customers-section">
+                <!-- Customers Section -->
+                <div class="section-card">
+                    <div class="section-header">
+                        <h2 class="section-title">
+                            <i class="fas fa-users"></i>
+                            Clientes
+                        </h2>
+                        <button class="btn btn-primary btn-sm" onclick="openCustomerModal()">
+                            <i class="fas fa-plus"></i>
+                            Novo Cliente
+                        </button>
+                    </div>
+                    <div class="section-content">
+                        <div class="item-list" id="customersList">
+                            <div class="empty-state">
+                                <i class="fas fa-users"></i>
+                                <h3>Nenhum cliente cadastrado</h3>
+                                <p>Adicione clientes para começar</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="page-content" id="settings-section">
+                <!-- Settings Section -->
+                <div class="main-content" style="margin-top: 40px;">
+                    <!-- Date Settings Section -->
+                    <div class="section-card">
+                        <div class="section-header">
+                            <h2 class="section-title">
+                                <i class="fas fa-calendar-cog"></i>
+                                Configurações de Datas
+                            </h2>
+                            <button class="btn btn-primary btn-sm" onclick="openDateSettingsModal()">
+                                <i class="fas fa-cog"></i>
+                                Configurar
+                            </button>
+                        </div>
+                        <div class="section-content">
+                            <div id="dateSettingsInfo">
+                                <div class="item-meta">
+                                    <div><i class="fas fa-calendar-day"></i> Dias para mostrar: <span id="daysToShowInfo">5</span></div>
+                                    <div><i class="fas fa-ban"></i> Excluir fins de semana: <span id="excludeWeekendsInfo">Sim</span></div>
+                                    <div><i class="fas fa-clock"></i> Começar a partir de: <span id="startFromInfo">Amanhã</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Time Settings Section -->
+                    <div class="section-card">
+                        <div class="section-header">
+                            <h2 class="section-title">
+                                <i class="fas fa-clock"></i>
+                                Configurações de Horários
+                            </h2>
+                            <button class="btn btn-primary btn-sm" onclick="openTimeSettingsModal()">
+                                <i class="fas fa-cog"></i>
+                                Configurar
+                            </button>
+                        </div>
+                        <div class="section-content">
+                            <div id="timeSettingsInfo">
+                                <div class="item-meta">
+                                    <div><i class="fas fa-play"></i> Horário de início: <span id="startTimeInfo">09:00</span></div>
+                                    <div><i class="fas fa-stop"></i> Horário de fim: <span id="endTimeInfo">17:00</span></div>
+                                    <div><i class="fas fa-clock"></i> Intervalo: <span id="intervalInfo">60 min</span></div>
+                                    <div><i class="fas fa-utensils"></i> Pausa para almoço: <span id="lunchBreakInfo">12:00 - 13:00</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bot Settings Section -->
+                    <div class="section-card">
+                        <div class="section-header">
+                            <h2 class="section-title">
+                                <i class="fas fa-robot"></i>
+                                Configurações do Chatbot
+                            </h2>
+                        </div>
+                        <div class="section-content">
+                            <div class="item-meta">
+                                <div><i class="fas fa-info-circle"></i> As datas e horários configurados acima serão utilizados pelo chatbot do WhatsApp</div>
+                                <div><i class="fas fa-sync-alt"></i> As alterações são aplicadas automaticamente</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Reminder Settings Section -->
+                    <div class="section-card">
+                        <div class="section-header">
+                            <h2 class="section-title">
+                                <i class="fas fa-bell"></i>
+                                Configurações de Lembretes
+                            </h2>
+                        </div>
+                        <div class="section-content">
+                            <form id="reminderSettingsForm">
+                                <div class="form-group">
+                                    <label class="form-label">Intervalo de lembrete (horas)</label>
+                                    <input type="number" class="form-input" id="reminderInterval" min="1" max="168" required>
+                                </div>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save"></i>
+                                    Salvar
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Service Modal -->
+    <div class="modal" id="serviceModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="serviceModalTitle">Novo Serviço</h3>
+            </div>
+            <form id="serviceForm">
+                <input type="hidden" id="serviceId">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="form-label">Nome do Serviço</label>
+                        <input type="text" class="form-input" id="serviceName" required placeholder="Ex: Banho e Tosa Completa">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Preço (R$)</label>
+                        <input type="number" class="form-input" id="servicePrice" required placeholder="0,00" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Duração (minutos)</label>
+                        <input type="number" class="form-input" id="serviceDuration" required placeholder="Ex: 60" min="1">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeServiceModal()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i>
+                        Salvar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Professional Modal -->
+    <div class="modal" id="professionalModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="professionalModalTitle">Novo Profissional</h3>
+            </div>
+            <form id="professionalForm">
+                <input type="hidden" id="professionalId">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="form-label">Nome do Profissional</label>
+                        <input type="text" class="form-input" id="professionalName" required placeholder="Ex: Maria Silva">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeProfessionalModal()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i>
+                        Salvar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Booking Modal -->
+    <div class="modal" id="bookingModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Novo Agendamento</h3>
+            </div>
+            <form id="bookingForm">
+                <input type="hidden" id="bookingId">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="form-label">Nome do Pet</label>
+                        <input type="text" class="form-input" id="petName" required placeholder="Ex: Rex">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Nome do Tutor</label>
+                        <input type="text" class="form-input" id="ownerName" required placeholder="Ex: João Silva">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Telefone</label>
+                        <input type="tel" class="form-input" id="phone" required placeholder="(11) 99999-9999">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Serviço</label>
+                        <select class="form-select" id="service" required>
+                            <option value="">Selecione um serviço</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Profissional</label>
+                        <select class="form-select" id="professional" required>
+                            <option value="">Selecione um profissional</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Data</label>
+                        <input type="date" class="form-input" id="date" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Horário</label>
+                        <input type="time" class="form-input" id="time" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-danger" id="deleteBookingButton" style="display: none;">Excluir</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeBookingModal()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-check"></i>
+                        Confirmar Agendamento
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Customer Modal -->
+    <div class="modal" id="customerModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="customerModalTitle">Novo Cliente</h3>
+            </div>
+            <form id="customerForm">
+                <input type="hidden" id="customerId">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="form-label">Nome do Tutor</label>
+                        <input type="text" class="form-input" id="customerName" required placeholder="Ex: João Silva">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Telefone</label>
+                        <input type="tel" class="form-input" id="customerPhone" required placeholder="(11) 99999-9999">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Nome do Pet</label>
+                        <input type="text" class="form-input" id="customerPetName" required placeholder="Ex: Rex">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeCustomerModal()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i>
+                        Salvar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Date Settings Modal -->
+    <div class="modal" id="dateSettingsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Configurações de Datas do Chatbot</h3>
+            </div>
+            <form id="dateSettingsForm">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="form-label">Quantos dias mostrar no chatbot</label>
+                        <input type="number" class="form-input" id="daysToShow" min="1" max="10" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">
+                            <input type="checkbox" id="excludeWeekends" style="margin-right: 8px;">
+                            Excluir fins de semana (sábado e domingo)
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">
+                            <input type="checkbox" id="startFromTomorrow" style="margin-right: 8px;">
+                            Começar a partir de amanhã (senão começa hoje)
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Dias da semana para excluir</label>
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 8px;">
+                            <label><input type="checkbox" id="excludeSunday" style="margin-right: 8px;">Domingo</label>
+                            <label><input type="checkbox" id="excludeMonday" style="margin-right: 8px;">Segunda-feira</label>
+                            <label><input type="checkbox" id="excludeTuesday" style="margin-right: 8px;">Terça-feira</label>
+                            <label><input type="checkbox" id="excludeWednesday" style="margin-right: 8px;">Quarta-feira</label>
+                            <label><input type="checkbox" id="excludeThursday" style="margin-right: 8px;">Quinta-feira</label>
+                            <label><input type="checkbox" id="excludeFriday" style="margin-right: 8px;">Sexta-feira</label>
+                            <label><input type="checkbox" id="excludeSaturday" style="margin-right: 8px;">Sábado</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeDateSettingsModal()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i>
+                        Salvar Configurações
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Time Settings Modal -->
+    <div class="modal" id="timeSettingsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Configurações de Horários do Chatbot</h3>
+            </div>
+            <form id="timeSettingsForm">
+                <div class="modal-body">
+                    <div class="tabs">
+                        <div class="tab-link active" data-tab="monday">Segunda</div>
+                        <div class="tab-link" data-tab="tuesday">Terça</div>
+                        <div class="tab-link" data-tab="wednesday">Quarta</div>
+                        <div class="tab-link" data-tab="thursday">Quinta</div>
+                        <div class="tab-link" data-tab="friday">Sexta</div>
+                        <div class="tab-link" data-tab="saturday">Sábado</div>
+                        <div class="tab-link" data-tab="sunday">Domingo</div>
+                    </div>
+
+                    <div id="timeSettingsTabs">
+                        <!-- Tabs will be generated by JavaScript -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeTimeSettingsModal()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i>
+                        Salvar Configurações
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+    <script>
+        const API_URL = 'http://localhost:3333/api';
+        let calendar;
+        let allNotifications = [];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeCalendar();
+            loadInitialData();
+            setupPolling();
+            setupNotificationBell();
+            
+            // Set minimum date for booking to today
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('date').min = today;
+
+            // Menu navigation
+            const menuItems = document.querySelectorAll('.menu-item');
+            const pageContents = document.querySelectorAll('.page-content');
+
+            menuItems.forEach(item => {
+                item.addEventListener('click', (e) => {
+                    e.preventDefault();
+
+                    const target = item.getAttribute('data-target');
+
+                    menuItems.forEach(i => i.classList.remove('active'));
+                    item.classList.add('active');
+
+                    pageContents.forEach(content => {
+                        if (content.id === target) {
+                            content.classList.add('active');
+                        }
+                        else {
+                            content.classList.remove('active');
+                        }
+                    });
+
+                    if (target === 'calendar-section' && calendar) {
+                        calendar.changeView('timeGridWeek');
+                        setTimeout(() => {
+                            const nowIndicator = document.querySelector('.fc-timegrid-now-indicator-line');
+                            if (nowIndicator) {
+                                nowIndicator.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            } else {
+                                const now = new Date();
+                                calendar.scrollToTime(now.toTimeString().slice(0,8));
+                            }
+                        }, 200);
+                    }
+                });
+            });
+
+            // Hamburger menu
+            const hamburgerMenu = document.querySelector('.hamburger-menu');
+            const sidebar = document.querySelector('.sidebar');
+
+            hamburgerMenu.addEventListener('click', () => {
+                sidebar.classList.toggle('active');
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!sidebar.contains(e.target) && !hamburgerMenu.contains(e.target)) {
+                    sidebar.classList.remove('active');
+                }
+            });
+
+            window.addEventListener('resize', () => {
+                if (calendar) {
+                    calendar.updateSize();
+                }
+            });
+        });
+
+        function setupPolling() {
+            setInterval(() => {
+                pollNotifications();
+                checkWhatsappStatus();
+            }, 15000); // Poll every 15 seconds
+        }
+
+        async function pollNotifications() {
+            try {
+                const response = await fetch(`${API_URL}/notifications`);
+                const notifications = await response.json();
+
+                if (notifications.length > 0) {
+                    allNotifications.unshift(...notifications);
+                    document.getElementById('notificationBadge').style.display = 'block';
+                    // Refresh data since something changed
+                    loadAppointments();
+                    loadStats();
+                }
+            } catch (error) {
+                console.error('Error polling notifications:', error);
+            }
+        }
+
+        function setupNotificationBell() {
+            const notificationBell = document.getElementById('notificationBell');
+            const dropdown = document.getElementById('notificationDropdown');
+
+            notificationBell.addEventListener('click', (event) => {
+                event.stopPropagation();
+                updateNotificationDropdown();
+                dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+                document.getElementById('notificationBadge').style.display = 'none';
+            });
+
+            document.addEventListener('click', (event) => {
+                if (!notificationBell.contains(event.target)) {
+                    dropdown.style.display = 'none';
+                }
+            });
+        }
+
+        function updateNotificationDropdown() {
+            const dropdown = document.getElementById('notificationDropdown');
+            dropdown.innerHTML = '';
+
+            if (allNotifications.length === 0) {
+                dropdown.innerHTML = '<div class="notification-item">Nenhuma nova notificação</div>';
+                return;
+            }
+
+            allNotifications.forEach(notification => {
+                const item = document.createElement('div');
+                item.className = 'notification-item';
+                let title = '';
+                let details = '';
+
+                if (notification.type === 'new_booking' || (notification.booking && !notification.type)) { // Fallback for old format
+                    const booking = notification.booking || notification;
+                    title = '✅ Novo Agendamento:';
+                    const date = new Date(booking.date);
+                    const formattedDate = date.toLocaleDateString('pt-BR', { timeZone: 'UTC' });
+                    details = `${booking.pet_name} - ${booking.service}<br><small>${formattedDate} às ${booking.time}</small>`;
+                } else if (notification.type === 'cancellation') {
+                    const appointment = notification.appointment;
+                    title = '❌ Agendamento Cancelado:';
+                    const date = new Date(appointment.date);
+                    const formattedDate = date.toLocaleDateString('pt-BR', { timeZone: 'UTC' });
+                    details = `${appointment.pet_name} - ${appointment.service}<br><small>${formattedDate} às ${appointment.time}</small>`;
+                }
+
+                if (title) {
+                    item.innerHTML = `<strong>${title}</strong><br>${details}`;
+                    dropdown.appendChild(item);
+                }
+            });
+        }
+
+        function loadInitialData(){
+            loadStats();
+            loadServices();
+            loadProfessionals();
+            loadAppointments(true);
+            loadCustomers();
+            loadDateSettings();
+            loadTimeSettings();
+            loadReminderSettings();
+            checkWhatsappStatus();
+        }
+
+        function initializeCalendar() {
+            const calendarEl = document.getElementById('calendar');
+            calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'timeGridWeek',
+                nowIndicator: true,
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek,timeGridDay'
+                },
+                events: [],
+                locale: 'pt-br',
+                height: 'auto',
+                eventDisplay: 'block',
+                dayMaxEvents: 3,
+                moreLinkClick: 'popover',
+                eventClick: function(info) {
+                    openBookingModal(info.event, null);
+                },
+                dateClick: function(info) {
+                    openBookingModal(null, info);
+                },
+                eventContent: function(arg) {
+                    return {
+                        html: `
+                            <div class="fc-event-main-frame">
+                                <div class="fc-event-time">${arg.timeText}</div>
+                                <div class="fc-event-title-container">
+                                    <div class="fc-event-title fc-sticky">${arg.event.title}</div>
+                                    <div class="fc-event-professional">- ${arg.event.extendedProps.professional || 'N/A'}</div>
+                                </div>
+                            </div>
+                        `
+                    };
+                },
+                eventDidMount: function(info) {
+                    tippy(info.el, {
+                        content: `
+                            <strong>Serviço:</strong> ${info.event.extendedProps.service}<br>
+                            <strong>Profissional:</strong> ${info.event.extendedProps.professional || 'N/A'}<br>
+                            <strong>Dono:</strong> ${info.event.extendedProps.owner}<br>
+                            <strong>Telefone:</strong> ${info.event.extendedProps.phone}
+                        `,
+                        allowHTML: true,
+                    });
+                }
+            });
+            calendar.render();
+        }
+
+        async function loadStats() {
+            try {
+                const response = await fetch(`${API_URL}/stats`);
+                const stats = await response.json();
+                
+                document.getElementById('todayCount').textContent = stats.today || 0;
+                document.getElementById('totalCount').textContent = stats.total || 0;
+                document.getElementById('pendingCount').textContent = stats.pending || 0;
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+
+        async function loadServices() {
+            try {
+                const response = await fetch(`${API_URL}/services`);
+                const services = await response.json();
+                const servicesList = document.getElementById('servicesList');
+                const serviceSelect = document.getElementById('service');
+                
+                servicesList.innerHTML = '';
+                serviceSelect.innerHTML = '<option value="">Selecione um serviço</option>';
+
+                if (services.length === 0) {
+                    servicesList.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-cut"></i>
+                            <h3>Nenhum serviço cadastrado</h3>
+                            <p>Adicione serviços para começar</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                services.forEach(service => {
+                    const serviceItem = document.createElement('div');
+                    serviceItem.className = 'list-item';
+                    serviceItem.innerHTML = `
+                        <div class="item-header">
+                            <span class="item-title">${service.name}</span>
+                            <span class="item-price">R$ ${parseFloat(service.price).toFixed(2)}</span>
+                        </div>
+                        <div class="item-actions">
+                            <button class="btn btn-secondary btn-sm" onclick="editService(${service.id}, '${service.name}', ${service.price}, ${service.duration})">
+                                <i class="fas fa-edit"></i>
+                                Editar
+                            </button>
+                            <button class="btn btn-danger btn-sm" onclick="deleteService(${service.id})">
+                                <i class="fas fa-trash"></i>
+                                Excluir
+                            </button>
+                        </div>
+                    `;
+                    servicesList.appendChild(serviceItem);
+
+                    const option = document.createElement('option');
+                    option.value = service.name;
+                    option.textContent = service.name;
+                    serviceSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading services:', error);
+            }
+        }
+
+        async function loadProfessionals() {
+            try {
+                const response = await fetch(`${API_URL}/professionals`);
+                const professionals = await response.json();
+                const professionalsList = document.getElementById('professionalsList');
+                const professionalSelect = document.getElementById('professional');
+                const professionalFilter = document.getElementById('professionalFilter');
+                
+                professionalsList.innerHTML = '';
+                professionalSelect.innerHTML = '<option value="">Selecione um profissional</option>';
+                professionalFilter.innerHTML = '<option value="all">Todos os profissionais</option>';
+
+                if (professionals.length === 0) {
+                    professionalsList.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-user-tie"></i>
+                            <h3>Nenhum profissional cadastrado</h3>
+                            <p>Adicione profissionais para começar</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                professionals.forEach(professional => {
+                    const professionalItem = document.createElement('div');
+                    professionalItem.className = 'list-item';
+                    professionalItem.innerHTML = `
+                        <div class="item-header">
+                            <span class="item-title">${professional.name}</span>
+                        </div>
+                        <div class="item-actions">
+                            <button class="btn btn-secondary btn-sm" onclick="editProfessional(${professional.id}, '${professional.name}')">
+                                <i class="fas fa-edit"></i>
+                                Editar
+                            </button>
+                            <button class="btn btn-danger btn-sm" onclick="deleteProfessional(${professional.id})">
+                                <i class="fas fa-trash"></i>
+                                Excluir
+                            </button>
+                        </div>
+                    `;
+                    professionalsList.appendChild(professionalItem);
+
+                    const option = document.createElement('option');
+                    option.value = professional.id;
+                    option.textContent = professional.name;
+                    professionalSelect.appendChild(option);
+
+                    const filterOption = document.createElement('option');
+                    filterOption.value = professional.id;
+                    filterOption.textContent = professional.name;
+                    professionalFilter.appendChild(filterOption);
+                });
+            } catch (error) {
+                console.error('Error loading professionals:', error);
+            }
+        }
+
+        async function loadCustomers() {
+            try {
+                const response = await fetch(`${API_URL}/customers`);
+                const customers = await response.json();
+                const customersList = document.getElementById('customersList');
+                customersList.innerHTML = '';
+
+                if (customers.length === 0) {
+                    customersList.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-users"></i>
+                            <h3>Nenhum cliente cadastrado</h3>
+                            <p>Adicione clientes para começar</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                customers.forEach(customer => {
+                    const customerItem = document.createElement('div');
+                    customerItem.className = 'list-item';
+                    customerItem.innerHTML = `
+                        <div class="item-header">
+                            <span class="item-title">${customer.owner_name}</span>
+                            <div class="item-actions">
+                                <button class="btn btn-secondary btn-sm" onclick="editCustomer(${customer.id}, '${customer.owner_name}', '${customer.phone}', '${customer.pet_names}')">
+                                    <i class="fas fa-edit"></i>
+                                    Editar
+                                </button>
+                                <button class="btn btn-danger btn-sm" onclick="deleteCustomer(${customer.id})">
+                                    <i class="fas fa-trash"></i>
+                                    Excluir
+                                </button>
+                            </div>
+                        </div>
+                        <div class="item-meta">
+                            <div><i class="fas fa-paw"></i> Pets: ${customer.pet_names || 'Nenhum'}</div>
+                            <div><i class="fas fa-phone"></i> ${customer.phone}</div>
+                        </div>
+                    `;
+                    customersList.appendChild(customerItem);
+                });
+            } catch (error) {
+                console.error('Error loading customers:', error);
+            }
+        }
+
+        async function loadAppointments(isInitialLoad = false) {
+            try {
+                const professionalId = document.getElementById('professionalFilter').value;
+                const url = professionalId === 'all' ? `${API_URL}/appointments` : `${API_URL}/appointments/professional/${professionalId}`;
+                const response = await fetch(url);
+                const appointments = await response.json();
+
+                const currentEventIds = calendar.getEvents().map(e => parseInt(e.id));
+                const foundNew = appointments.filter(a => !currentEventIds.includes(a.id));
+
+                if (!isInitialLoad && foundNew.length > 0) {
+                    newAppointments.push(...foundNew);
+                    document.getElementById('notificationBadge').style.display = 'block';
+                }
+                
+                const events = appointments.map(appointment => {
+                    const start = new Date(`${appointment.date}T${appointment.time}`);
+                    const end = new Date(start.getTime() + appointment.duration * 60000); // duration in minutes
+
+                    return {
+                        id: appointment.id,
+                        title: `${appointment.pet_name} (${appointment.service})`,
+                        start: start.toISOString(),
+                        end: end.toISOString(),
+                        extendedProps: {
+                            professional: appointment.professional_name,
+                            owner: appointment.owner_name,
+                            phone: appointment.phone,
+                            service: appointment.service,
+                            professional_id: appointment.professional_id,
+                            duration: appointment.duration
+                        }
+                    };
+                });
+
+                calendar.removeAllEvents();
+                calendar.addEventSource(events);
+
+            } catch (error) {
+                console.error('Error loading appointments:', error);
+            }
+        }
+
+        async function checkWhatsappStatus() {
+            const statusIndicator = document.getElementById('whatsappStatusIndicator');
+            const statusDot = document.getElementById('statusDot');
+            const statusText = document.getElementById('whatsappStatusText');
+            
+            try {
+                const response = await fetch(`${API_URL}/status`);
+                const status = await response.json();
+                
+                if (status && status.instance && status.instance.state === 'open') {
+                    statusIndicator.className = 'status-indicator connected';
+                    statusDot.className = 'status-dot connected';
+                    statusText.textContent = 'WhatsApp Conectado';
+                } else {
+                    statusIndicator.className = 'status-indicator disconnected';
+                    statusDot.className = 'status-dot disconnected';
+                    statusText.textContent = 'WhatsApp Desconectado';
+                }
+            } catch (error) {
+                console.error('Error checking WhatsApp status:', error);
+                statusIndicator.className = 'status-indicator disconnected';
+                statusDot.className = 'status-dot disconnected';
+                statusText.textContent = 'Erro de Conexão';
+            }
+        }
+
+        // Service Modal Functions
+        function openServiceModal(isNew = true) {
+            document.getElementById('serviceModal').classList.add('active');
+            if (isNew) {
+                document.getElementById('serviceModalTitle').textContent = 'Novo Serviço';
+                document.getElementById('serviceForm').reset();
+                document.getElementById('serviceId').value = '';
+                document.getElementById('serviceDuration').value = '60'; // Default duration
+            } else {
+                document.getElementById('serviceModalTitle').textContent = 'Editar Serviço';
+            }
+        }
+
+        function closeServiceModal() {
+            document.getElementById('serviceModal').classList.remove('active');
+        }
+
+        function editService(id, name, price, duration) {
+            document.getElementById('serviceId').value = id;
+            document.getElementById('serviceName').value = name;
+            document.getElementById('servicePrice').value = price;
+            document.getElementById('serviceDuration').value = duration;
+            openServiceModal(false);
+        }
+
+        document.getElementById('serviceForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('serviceId').value;
+            const name = document.getElementById('serviceName').value;
+            const price = document.getElementById('servicePrice').value;
+            const duration = document.getElementById('serviceDuration').value;
+            const method = id ? 'PUT' : 'POST';
+            const url = id ? `${API_URL}/services/${id}` : `${API_URL}/services`;
+
+            try {
+                await fetch(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, price: parseFloat(price), duration: parseInt(duration) })
+                });
+                closeServiceModal();
+                loadServices();
+            } catch (error) {
+                console.error('Error saving service:', error);
+                alert('Erro ao salvar serviço. Tente novamente.');
+            }
+        });
+
+        async function deleteService(id) {
+            if (confirm('Tem certeza que deseja excluir este serviço?')) {
+                try {
+                    await fetch(`${API_URL}/services/${id}`, { method: 'DELETE' });
+                    loadServices();
+                } catch (error) {
+                    console.error('Error deleting service:', error);
+                    alert('Erro ao excluir serviço. Tente novamente.');
+                }
+            }
+        }
+
+        // Professional Modal Functions
+        function openProfessionalModal(isNew = true) {
+            document.getElementById('professionalModal').classList.add('active');
+            if (isNew) {
+                document.getElementById('professionalModalTitle').textContent = 'Novo Profissional';
+                document.getElementById('professionalForm').reset();
+                document.getElementById('professionalId').value = '';
+            } else {
+                document.getElementById('professionalModalTitle').textContent = 'Editar Profissional';
+            }
+        }
+
+        function closeProfessionalModal() {
+            document.getElementById('professionalModal').classList.remove('active');
+        }
+
+        function editProfessional(id, name) {
+            document.getElementById('professionalId').value = id;
+            document.getElementById('professionalName').value = name;
+            openProfessionalModal(false);
+        }
+
+        document.getElementById('professionalForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('professionalId').value;
+            const name = document.getElementById('professionalName').value;
+            const method = id ? 'PUT' : 'POST';
+            const url = id ? `${API_URL}/professionals/${id}` : `${API_URL}/professionals`;
+
+            try {
+                await fetch(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name })
+                });
+                closeProfessionalModal();
+                loadProfessionals();
+            } catch (error) {
+                console.error('Error saving professional:', error);
+                alert('Erro ao salvar profissional. Tente novamente.');
+            }
+        });
+
+        async function deleteProfessional(id) {
+            if (confirm('Tem certeza que deseja excluir este profissional?')) {
+                try {
+                    await fetch(`${API_URL}/professionals/${id}`, { method: 'DELETE' });
+                    loadProfessionals();
+                } catch (error) {
+                    console.error('Error deleting professional:', error);
+                    alert('Erro ao excluir profissional. Tente novamente.');
+                }
+            }
+        }
+
+        // Booking Modal Functions
+        function openBookingModal(event = null, dateClickInfo = null) {
+            const modal = document.getElementById('bookingModal');
+            const form = document.getElementById('bookingForm');
+            const title = modal.querySelector('.modal-title');
+            const deleteButton = document.getElementById('deleteBookingButton');
+            
+            form.reset();
+            document.getElementById('bookingId').value = '';
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('date').min = today;
+
+            if (event) {
+                title.textContent = 'Editar Agendamento';
+                document.getElementById('bookingId').value = event.id;
+                document.getElementById('petName').value = event.title.split(' (')[0];
+                document.getElementById('ownerName').value = event.extendedProps.owner;
+                document.getElementById('phone').value = event.extendedProps.phone;
+                document.getElementById('service').value = event.extendedProps.service;
+                document.getElementById('professional').value = event.extendedProps.professional_id;
+                document.getElementById('date').value = event.start.toISOString().split('T')[0];
+                document.getElementById('time').value = event.start.toTimeString().slice(0, 5);
+                deleteButton.style.display = 'block';
+                deleteButton.onclick = () => deleteAppointment(event.id);
+            } else {
+                title.textContent = 'Novo Agendamento';
+                deleteButton.style.display = 'none';
+                if (dateClickInfo) { // Clicked on the calendar
+                    const clickedDate = new Date(dateClickInfo.dateStr);
+                    if (clickedDate < new Date(today)) {
+                        alert("Não é possível agendar em uma data passada.");
+                        return;
+                    }
+                    document.getElementById('date').value = dateClickInfo.dateStr.split('T')[0];
+                    if (!dateClickInfo.allDay) {
+                        document.getElementById('time').value = dateClickInfo.dateStr.split('T')[1].slice(0, 5);
+                    }
+                }
+            }
+
+            modal.classList.add('active');
+        }
+
+        function closeBookingModal() {
+            document.getElementById('bookingModal').classList.remove('active');
+        }
+
+        async function deleteAppointment(id) {
+            if (confirm('Tem certeza que deseja excluir este agendamento?')) {
+                try {
+                    await fetch(`${API_URL}/appointments/${id}`, { method: 'DELETE' });
+                    closeBookingModal();
+                    loadAppointments();
+                    loadStats();
+                    loadCustomers();
+                    alert('Agendamento excluído com sucesso!');
+                } catch (error) {
+                    console.error('Error deleting appointment:', error);
+                    alert('Erro ao excluir agendamento. Tente novamente.');
+                }
+            }
+        }
+
+        document.getElementById('bookingForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('bookingId').value;
+            const booking = {
+                pet_name: document.getElementById('petName').value,
+                owner_name: document.getElementById('ownerName').value,
+                phone: document.getElementById('phone').value,
+                service: document.getElementById('service').value,
+                professional_id: document.getElementById('professional').value,
+                date: document.getElementById('date').value,
+                time: document.getElementById('time').value,
+                status: 'confirmed'
+            };
+
+            const method = id ? 'PUT' : 'POST';
+            const url = id ? `${API_URL}/appointments/${id}` : `${API_URL}/appointments`;
+
+            try {
+                const response = await fetch(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(booking)
+                });
+
+                if (response.ok) {
+                    closeBookingModal();
+                    loadAppointments();
+                    loadStats();
+                    loadCustomers();
+                    alert(`Agendamento ${id ? 'atualizado' : 'criado'} com sucesso!`);
+                } else {
+                    throw new Error(`Erro ao ${id ? 'atualizar' : 'criar'} agendamento`);
+                }
+            } catch (error) {
+                console.error(`Error ${id ? 'updating' : 'creating'} appointment:`, error);
+                alert(`Erro ao ${id ? 'atualizar' : 'criar'} agendamento. Tente novamente.`);
+            }
+        });
+
+        // Customer Modal Functions
+        function openCustomerModal(isNew = true) {
+            document.getElementById('customerModal').classList.add('active');
+            if (isNew) {
+                document.getElementById('customerModalTitle').textContent = 'Novo Cliente';
+                document.getElementById('customerForm').reset();
+                document.getElementById('customerId').value = '';
+            } else {
+                document.getElementById('customerModalTitle').textContent = 'Editar Cliente';
+            }
+        }
+
+        function closeCustomerModal() {
+            document.getElementById('customerModal').classList.remove('active');
+        }
+
+        function editCustomer(id, name, phone, petName) {
+            document.getElementById('customerId').value = id;
+            document.getElementById('customerName').value = name;
+            document.getElementById('customerPhone').value = phone;
+            document.getElementById('customerPetName').value = petName;
+            openCustomerModal(false);
+        }
+
+        document.getElementById('customerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('customerId').value;
+            const customer = {
+                owner_name: document.getElementById('customerName').value,
+                phone: document.getElementById('customerPhone').value,
+                pet_name: document.getElementById('customerPetName').value
+            };
+
+            const method = id ? 'PUT' : 'POST';
+            const url = id ? `${API_URL}/customers/${id}` : `${API_URL}/customers`;
+
+            try {
+                const response = await fetch(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(customer)
+                });
+
+                if (response.ok) {
+                    closeCustomerModal();
+                    loadCustomers();
+                    alert(`Cliente ${id ? 'atualizado' : 'criado'} com sucesso!`);
+                } else {
+                    const errorData = await response.json();
+                    alert(errorData.error);
+                }
+            } catch (error) {
+                console.error(`Error ${id ? 'updating' : 'creating'} customer:`, error);
+                alert(`Erro ao ${id ? 'atualizar' : 'criar'} cliente. Tente novamente.`);
+            }
+        });
+
+        async function deleteCustomer(id) {
+            if (confirm('Tem certeza que deseja excluir este cliente?')) {
+                try {
+                    await fetch(`${API_URL}/customers/${id}`, { method: 'DELETE' });
+                    loadCustomers();
+                    alert('Cliente excluído com sucesso!');
+                } catch (error) {
+                    console.error('Error deleting customer:', error);
+                    alert('Erro ao excluir cliente. Tente novamente.');
+                }
+            }
+        }
+
+        // Close modals when clicking outside
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal')) {
+                e.target.classList.remove('active');
+            }
+        });
+
+        // Date Settings Functions
+        async function loadDateSettings() {
+            try {
+                const response = await fetch(`${API_URL}/date-settings`);
+                const settings = await response.json();
+                updateDateSettingsDisplay(settings.config);
+            } catch (error) {
+                console.error('Error loading date settings:', error);
+            }
+        }
+
+        function updateDateSettingsDisplay(config) {
+            document.getElementById('daysToShowInfo').textContent = config.daysToShow || 5;
+            document.getElementById('excludeWeekendsInfo').textContent = config.excludeWeekends ? 'Sim' : 'Não';
+            document.getElementById('startFromInfo').textContent = config.startFromTomorrow ? 'Amanhã' : 'Hoje';
+        }
+
+        function openDateSettingsModal() {
+            document.getElementById('dateSettingsModal').classList.add('active');
+            loadDateSettingsForm();
+        }
+
+        function closeDateSettingsModal() {
+            document.getElementById('dateSettingsModal').classList.remove('active');
+        }
+
+        async function loadDateSettingsForm() {
+            try {
+                const response = await fetch(`${API_URL}/date-settings`);
+                const settings = await response.json();
+                const config = settings.config;
+
+                document.getElementById('daysToShow').value = config.daysToShow || 5;
+                document.getElementById('excludeWeekends').checked = config.excludeWeekends || false;
+                document.getElementById('startFromTomorrow').checked = config.startFromTomorrow !== false;
+
+                // Set excluded days checkboxes
+                const excludedDays = config.excludedDays || [];
+                document.getElementById('excludeSunday').checked = excludedDays.includes(0);
+                document.getElementById('excludeMonday').checked = excludedDays.includes(1);
+                document.getElementById('excludeTuesday').checked = excludedDays.includes(2);
+                document.getElementById('excludeWednesday').checked = excludedDays.includes(3);
+                document.getElementById('excludeThursday').checked = excludedDays.includes(4);
+                document.getElementById('excludeFriday').checked = excludedDays.includes(5);
+                document.getElementById('excludeSaturday').checked = excludedDays.includes(6);
+            } catch (error) {
+                console.error('Error loading date settings form:', error);
+            }
+        }
+
+        document.getElementById('dateSettingsForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const excludedDays = [];
+            if (document.getElementById('excludeSunday').checked) excludedDays.push(0);
+            if (document.getElementById('excludeMonday').checked) excludedDays.push(1);
+            if (document.getElementById('excludeTuesday').checked) excludedDays.push(2);
+            if (document.getElementById('excludeWednesday').checked) excludedDays.push(3);
+            if (document.getElementById('excludeThursday').checked) excludedDays.push(4);
+            if (document.getElementById('excludeFriday').checked) excludedDays.push(5);
+            if (document.getElementById('excludeSaturday').checked) excludedDays.push(6);
+
+            const config = {
+                daysToShow: parseInt(document.getElementById('daysToShow').value),
+                excludeWeekends: document.getElementById('excludeWeekends').checked,
+                startFromTomorrow: document.getElementById('startFromTomorrow').checked,
+                excludedDays: excludedDays
+            };
+
+            try {
+                await fetch(`${API_URL}/date-settings`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ config })
+                });
+                closeDateSettingsModal();
+                loadDateSettings();
+                alert('Configurações de datas salvas com sucesso!');
+            } catch (error) {
+                console.error('Error saving date settings:', error);
+                alert('Erro ao salvar configurações. Tente novamente.');
+            }
+        });
+
+        // Time Settings Functions
+        async function loadTimeSettings() {
+            try {
+                const response = await fetch(`${API_URL}/time-settings`);
+                const settings = await response.json();
+                updateTimeSettingsDisplay(settings.config);
+            } catch (error) {
+                console.error('Error loading time settings:', error);
+            }
+        }
+
+        function updateTimeSettingsDisplay(config) {
+            // This function now needs to be updated to reflect the new data structure
+            // For simplicity, we'll just show Monday's schedule for now.
+            const mondayConfig = config.monday;
+            if (mondayConfig) {
+                document.getElementById('startTimeInfo').textContent = mondayConfig.startTime || '09:00';
+                document.getElementById('endTimeInfo').textContent = mondayConfig.endTime || '17:00';
+                document.getElementById('intervalInfo').textContent = `${mondayConfig.interval || 60} min`;
+                
+                if (mondayConfig.lunchBreak) {
+                    document.getElementById('lunchBreakInfo').textContent = `${mondayConfig.lunchBreak.start} - ${mondayConfig.lunchBreak.end}`;
+                } else {
+                    document.getElementById('lunchBreakInfo').textContent = 'Desativado';
+                }
+            }
+        }
+
+        function openTimeSettingsModal() {
+            document.getElementById('timeSettingsModal').classList.add('active');
+            loadTimeSettingsForm();
+        }
+
+        function closeTimeSettingsModal() {
+            document.getElementById('timeSettingsModal').classList.remove('active');
+        }
+
+        async function loadTimeSettingsForm() {
+            try {
+                const response = await fetch(`${API_URL}/time-settings`);
+                const settings = await response.json();
+                const config = settings.config;
+                const tabsContainer = document.getElementById('timeSettingsTabs');
+                tabsContainer.innerHTML = '';
+
+                const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+                const dayTranslations = {
+                    monday: 'Segunda',
+                    tuesday: 'Terça',
+                    wednesday: 'Quarta',
+                    thursday: 'Quinta',
+                    friday: 'Sexta',
+                    saturday: 'Sábado',
+                    sunday: 'Domingo'
+                };
+
+                days.forEach((day, index) => {
+                    const dayConfig = config[day] || {};
+                    const tabContent = document.createElement('div');
+                    tabContent.className = `tab-content ${index === 0 ? 'active' : ''}`;
+                    tabContent.id = day;
+                    tabContent.innerHTML = `
+                        <div class="form-group">
+                            <label class="form-label">
+                                <input type="checkbox" id="enable-${day}" style="margin-right: 8px;" ${config[day] ? 'checked' : ''}>
+                                Aberto na ${dayTranslations[day]}
+                            </label>
+                        </div>
+                        <div class="day-settings" style="${config[day] ? '' : 'display: none;'}">
+                            <div class="form-group">
+                                <label class="form-label">Horário de início</label>
+                                <input type="time" class="form-input" id="startTime-${day}" value="${dayConfig.startTime || '09:00'}">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Horário de fim</label>
+                                <input type="time" class="form-input" id="endTime-${day}" value="${dayConfig.endTime || '17:00'}">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Intervalo entre horários (minutos)</label>
+                                <select class="form-select" id="interval-${day}">
+                                    <option value="30" ${dayConfig.interval === 30 ? 'selected' : ''}>30 minutos</option>
+                                    <option value="60" ${dayConfig.interval === 60 ? 'selected' : ''}>60 minutos</option>
+                                    <option value="90" ${dayConfig.interval === 90 ? 'selected' : ''}>90 minutos</option>
+                                    <option value="120" ${dayConfig.interval === 120 ? 'selected' : ''}>120 minutos</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">
+                                    <input type="checkbox" id="enableLunchBreak-${day}" style="margin-right: 8px;" ${dayConfig.lunchBreak ? 'checked' : ''}>
+                                    Ativar pausa para almoço
+                                </label>
+                            </div>
+                            <div id="lunchBreakSettings-${day}" style="${dayConfig.lunchBreak ? '' : 'display: none;'}">
+                                <div class="form-group">
+                                    <label class="form-label">Início da pausa</label>
+                                    <input type="time" class="form-input" id="lunchStart-${day}" value="${(dayConfig.lunchBreak && dayConfig.lunchBreak.start) || '12:00'}">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Fim da pausa</label>
+                                    <input type="time" class="form-input" id="lunchEnd-${day}" value="${(dayConfig.lunchBreak && dayConfig.lunchBreak.end) || '13:00'}">
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    tabsContainer.appendChild(tabContent);
+
+                    document.getElementById(`enable-${day}`).addEventListener('change', function() {
+                        tabContent.querySelector('.day-settings').style.display = this.checked ? 'block' : 'none';
+                    });
+
+                    document.getElementById(`enableLunchBreak-${day}`).addEventListener('change', function() {
+                        document.getElementById(`lunchBreakSettings-${day}`).style.display = this.checked ? 'block' : 'none';
+                    });
+                });
+
+                const tabLinks = document.querySelectorAll('.tab-link');
+                tabLinks.forEach(link => {
+                    link.addEventListener('click', () => {
+                        const tabId = link.getAttribute('data-tab');
+                        tabLinks.forEach(l => l.classList.remove('active'));
+                        link.classList.add('active');
+
+                        document.querySelectorAll('.tab-content').forEach(content => {
+                            content.classList.remove('active');
+                        });
+                        document.getElementById(tabId).classList.add('active');
+                    });
+                });
+
+            } catch (error) {
+                console.error('Error loading time settings form:', error);
+            }
+        }
+
+        document.getElementById('timeSettingsForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+            const config = {};
+
+            days.forEach(day => {
+                if (document.getElementById(`enable-${day}`).checked) {
+                    config[day] = {
+                        startTime: document.getElementById(`startTime-${day}`).value,
+                        endTime: document.getElementById(`endTime-${day}`).value,
+                        interval: parseInt(document.getElementById(`interval-${day}`).value),
+                        lunchBreak: null
+                    };
+
+                    if (document.getElementById(`enableLunchBreak-${day}`).checked) {
+                        config[day].lunchBreak = {
+                            start: document.getElementById(`lunchStart-${day}`).value,
+                            end: document.getElementById(`lunchEnd-${day}`).value
+                        };
+                    }
+                } else {
+                    config[day] = null;
+                }
+            });
+
+            try {
+                await fetch(`${API_URL}/time-settings`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ config })
+                });
+                closeTimeSettingsModal();
+                loadTimeSettings();
+                alert('Configurações de horários salvas com sucesso!');
+            } catch (error) {
+                console.error('Error saving time settings:', error);
+                alert('Erro ao salvar configurações. Tente novamente.');
+            }
+        });
+
+        // Reminder Settings Functions
+        async function loadReminderSettings() {
+            try {
+                const response = await fetch(`${API_URL}/reminder-settings`);
+                const settings = await response.json();
+                document.getElementById('reminderInterval').value = settings.reminder_interval || 24;
+            } catch (error) {
+                console.error('Error loading reminder settings:', error);
+            }
+        }
+
+        document.getElementById('reminderSettingsForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const reminder_interval = document.getElementById('reminderInterval').value;
+
+            try {
+                await fetch(`${API_URL}/reminder-settings`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ reminder_interval: parseInt(reminder_interval) })
+                });
+                alert('Configurações de lembrete salvas com sucesso!');
+            } catch (error) {
+                console.error('Error saving reminder settings:', error);
+                alert('Erro ao salvar configurações. Tente novamente.');
+            }
+        });
+    </script>
+</body>
+</html>
