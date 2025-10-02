@@ -17,7 +17,8 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static('public'));
 
-const bot = new PetGroomingBot();
+// Inicializar bot DEPOIS que o banco estiver pronto
+let bot;
 
 // In-memory store for notifications
 let notifications = [];
@@ -101,17 +102,37 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Iniciar servidor
-app.listen(PORT, async () => {
-    console.log(`✅ Servidor rodando em http://localhost:${PORT}`);
+// Função de inicialização
+async function startServer() {
     try {
+        console.log('🔄 Inicializando banco de dados...');
         await initDb();
+        console.log('✅ Banco de dados inicializado!');
+        
+        console.log('🔄 Inicializando bot...');
+        bot = new PetGroomingBot();
+        await bot.loadInitialData();
+        console.log('✅ Bot inicializado!');
+        
+        console.log('🔄 Inicializando serviço WhatsApp...');
         await initializeWhatsAppService();
+        console.log('✅ Serviço WhatsApp inicializado!');
+        
+        console.log('🔄 Inicializando scheduler...');
         require('./scheduler')(bot);
-        console.log(`📱 Webhook Evolution API: http://localhost:${PORT}/webhook/evolution`);
-        console.log(`🔗 Webhook interno: http://localhost:${PORT}/webhook/pet-grooming`);
+        console.log('✅ Scheduler inicializado!');
+        
+        app.listen(PORT, () => {
+            console.log(`✅ Servidor rodando em http://localhost:${PORT}`);
+            console.log(`📱 Webhook Evolution API: http://localhost:${PORT}/webhook/evolution`);
+            console.log(`🔗 Webhook interno: http://localhost:${PORT}/webhook/pet-grooming`);
+        });
+        
     } catch (error) {
         console.error('❌ Erro ao inicializar o servidor:', error);
         process.exit(1);
     }
-});
+}
+
+// Iniciar servidor
+startServer();

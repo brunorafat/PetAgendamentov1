@@ -10,7 +10,8 @@ class PetGroomingBot {
         this.sessions = new Map();
         this.services = [];
         this.professionals = [];
-        this.loadInitialData();
+        // NÃO chamar loadInitialData() aqui!
+        // Será chamado explicitamente no server.js após initDb()
     }
 
     async loadInitialData() {
@@ -22,8 +23,10 @@ class PetGroomingBot {
         try {
             const { rows } = await db.query('SELECT * FROM services');
             this.services = rows;
+            console.log(`✅ ${rows.length} serviços carregados`);
         } catch (err) {
             console.error('Error loading services:', err);
+            throw err;
         }
     }
 
@@ -31,8 +34,10 @@ class PetGroomingBot {
         try {
             const { rows } = await db.query('SELECT * FROM professionals');
             this.professionals = rows;
+            console.log(`✅ ${rows.length} profissionais carregados`);
         } catch (err) {
             console.error('Error loading professionals:', err);
+            throw err;
         }
     }
 
