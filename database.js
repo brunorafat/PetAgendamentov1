@@ -1,20 +1,36 @@
 require('dotenv').config();
 const { Pool } = require('pg');
 
+if (!process.env.DATABASE_URL) {
+    console.error('❌ DATABASE_URL não está configurada!');
+    process.exit(1);
+}
+
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: {
         rejectUnauthorized: false
-    }
+    },
+    connectionTimeoutMillis: 10000,
+    idleTimeoutMillis: 30000,
+    max: 20
 });
 
 pool.on('connect', () => {
-    console.log('Connected to the PostgreSQL database.');
+    console.log('✅ Connected to the PostgreSQL database.');
+});
+
+pool.on('error', (err) => {
+    console.error('❌ Unexpected database error:', err);
 });
 
 const initDb = async () => {
-    const client = await pool.connect();
+    let client;
     try {
+        console.log('🔄 Conectando ao banco de dados...');
+        client = await pool.connect();
+        console.log('✅ Conexão estabelecida. Criando tabelas...');
+        
         await client.query(`
             CREATE TABLE IF NOT EXISTS appointments (
                 id SERIAL PRIMARY KEY,
@@ -163,10 +179,16 @@ const initDb = async () => {
         await client.query('INSERT INTO reminder_settings (id, reminder_interval) VALUES (1, $1) ON CONFLICT (id) DO NOTHING',
             [24]);
 
+        console.log('✅ Database initialized successfully!');
+
     } catch (err) {
-        console.error('Error initializing database:', err.stack);
+        console.error('❌ Error initializing database:', err.message);
+        console.error('Stack:', err.stack);
+        throw err;
     } finally {
-        client.release();
+        if (client) {
+            client.release();
+        }
     }
 };
 
