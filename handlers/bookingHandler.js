@@ -1,6 +1,26 @@
 const { db } = require('../database');
 const { getMenuMessage: utilsGetMenuMessage } = require('../utils');
 
+// Configuração de fuso horário
+const TZ = 'America/Sao_Paulo';
+
+// Função helper para obter data/hora em São Paulo
+function getNowInBrazil() {
+    const nowUTC = new Date();
+    const nowBrazil = new Date(nowUTC.toLocaleString('en-US', { timeZone: TZ }));
+    return nowBrazil;
+}
+
+// Função helper para criar data em São Paulo
+function getDateInBrazil(dateString) {
+    // Para datas no formato YYYY-MM-DD
+    if (dateString) {
+        const [year, month, day] = dateString.split('-').map(Number);
+        return new Date(year, month - 1, day, 0, 0, 0, 0);
+    }
+    return getNowInBrazil();
+}
+
 function getServicesMessage(services) {
     let msg = `Qual serviço deseja agendar?\n\nDigite o número correspondente ao serviço que deseja agendar, ou digite *voltar*:\n\n`;
     services.forEach(service => {
@@ -126,7 +146,7 @@ async function getAvailableDates(professionalId, serviceName) {
 
 async function getDefaultAvailableDates(professionalId, serviceName) {
     const dates = [];
-    const today = new Date();
+    const today = getNowInBrazil();
     const days = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
     const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
@@ -160,7 +180,7 @@ async function getDefaultAvailableDates(professionalId, serviceName) {
 
 async function generateDatesFromConfig(config, professionalId, serviceName) {
     const dates = [];
-    const today = new Date();
+    const today = getNowInBrazil();
     const days = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
     const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
     
@@ -212,7 +232,9 @@ async function handleDateSelection(session, message) {
         if (parts.length === 3) {
             const [day, month, year] = parts;
             const date = new Date(`${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`);
-            if (date < new Date()) {
+            const today = getNowInBrazil();
+            today.setHours(0, 0, 0, 0);
+            if (date < today) {
                 return 'Não é possível agendar para datas passadas. Por favor, escolha uma data futura.';
             }
             session.tempData.date = date.toISOString().split('T')[0];
@@ -245,7 +267,7 @@ async function getAvailableTimeSlots(date, professionalId, serviceName) {
         let allSlots;
         if (settingsRows.length > 0) {
             const config = settingsRows[0].config;
-            const dayOfWeek = new Date(date).getUTCDay();
+            const dayOfWeek = getDateInBrazil(date).getDay();
             const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
             const dayConfig = config[days[dayOfWeek]];
             if (!dayConfig) return [];
@@ -299,7 +321,7 @@ async function checkAvailability(allSlots, date, professionalId, serviceDuration
         const { rows: appointments } = await db.query('SELECT time, service FROM appointments WHERE date = $1 AND professional_id = $2 AND status = $3', [date, professionalId, 'confirmed']);
         
         const bookedTimeRanges = [];
-        const slotDate = new Date(date + 'T00:00:00');
+        const slotDate = getDateInBrazil(date);
 
         for (const row of appointments) {
             const { rows: serviceRows } = await db.query('SELECT duration FROM services WHERE name = $1', [row.service]);
@@ -313,7 +335,7 @@ async function checkAvailability(allSlots, date, professionalId, serviceDuration
         }
 
         const availableSlots = [];
-        const now = new Date();
+        const now = getNowInBrazil();
         const nowDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         const isToday = slotDate.getTime() === nowDate.getTime();
 
@@ -322,7 +344,11 @@ async function checkAvailability(allSlots, date, professionalId, serviceDuration
             const slotTime = new Date(slotDate);
             slotTime.setHours(slotHour, slotMinute, 0, 0);
 
-            if (isToday && slotTime.getTime() < now.getTime()) continue;
+            // Se for hoje, só mostra horários futuros (com 30min de margem)
+            if (isToday) {
+                const minTime = new Date(now.getTime() + 30 * 60 * 1000); // 30 minutos de antecedência
+                if (slotTime.getTime() < minTime.getTime()) continue;
+            }
 
             const slotEnd = new Date(slotTime.getTime() + serviceDuration * 60 * 1000);
             let isAvailable = true;
