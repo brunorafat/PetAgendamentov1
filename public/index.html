@@ -1835,33 +1835,52 @@
 
         notificationBell.addEventListener('click', (e) => {
             e.stopPropagation();
-            notificationDropdown.style.display = notificationDropdown.style.display === 'block' ? 'none' : 'block';
-            
-            if (notificationDropdown.style.display === 'block' && (newAppointments.length > 0 || newCancellations.length > 0)) {
-                let content = '';
-                
-                content += newAppointments.map(a => `
-                    <div class="notification-item" style="background-color: #dcfce7;">
-                        <strong>Novo agendamento:</strong> ${a.pet_name} - ${a.service}
-                    </div>
-                `).join('');
+            const isOpen = notificationDropdown.style.display === 'block';
 
-                content += newCancellations.map(e => `
-                    <div class="notification-item" style="background-color: #fef2f2;">
-                        <strong>Agendamento cancelado:</strong> ${e.title}
-                    </div>
-                `).join('');
+            if (isOpen) {
+                notificationDropdown.style.display = 'none';
+            } else {
+                notificationDropdown.style.display = 'block';
+                let content = '';
+
+                if (newAppointments.length > 0) {
+                    content += newAppointments.map(a => `
+                        <div class="notification-item" style="background-color: #dcfce7;">
+                            <strong>Novo agendamento:</strong> ${a.pet_name} - ${a.service}
+                        </div>
+                    `).join('');
+                }
+
+                if (newCancellations.length > 0) {
+                    content += newCancellations.map(e => `
+                        <div class="notification-item" style="background-color: #fef2f2;">
+                            <strong>Agendamento cancelado:</strong> ${e.title}
+                        </div>
+                    `).join('');
+                }
+
+                if (content === '') {
+                    content = '<div class="notification-item">Nenhuma nova notificação</div>';
+                }
 
                 notificationDropdown.innerHTML = content;
-                
-                newAppointments = [];
-                newCancellations = [];
-                document.getElementById('notificationBadge').style.display = 'none';
             }
         });
 
-        document.addEventListener('click', () => {
-            notificationDropdown.style.display = 'none';
+        document.addEventListener('click', (e) => {
+            const bell = document.getElementById('notificationBell');
+            // If the dropdown is visible and the click is outside the bell/dropdown
+            if (notificationDropdown.style.display === 'block' && !bell.contains(e.target)) {
+                notificationDropdown.style.display = 'none';
+                
+                // Now clear the notifications since they have been "seen"
+                if (newAppointments.length > 0 || newCancellations.length > 0) {
+                    console.log("Limpando notificações...");
+                    newAppointments = [];
+                    newCancellations = [];
+                    document.getElementById('notificationBadge').style.display = 'none';
+                }
+            }
         });
 
         // Initialize
