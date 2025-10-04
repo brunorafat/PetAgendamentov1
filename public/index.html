@@ -1530,6 +1530,7 @@
     <script>
         const API_URL = '/api';
         let newAppointments = [];
+        let newCancellations = [];
 
         function isWithinBusinessHours(date, businessHours) {
             const dayOfWeek = date.getDay(); // Sunday = 0, ...
@@ -1583,20 +1584,30 @@
                         const url = professionalId === 'all' 
                             ? `${this.apiUrl}/appointments` 
                             : `${this.apiUrl}/appointments/professional/${professionalId}`;
-                        
+
+                        const oldEventIds = this.instance ? this.instance.getEvents().map(e => parseInt(e.id)) : [];
+
                         fetch(`${url}?t=${new Date().getTime()}`)
                             .then(response => {
                                 if (!response.ok) throw new Error('Falha ao buscar agendamentos.');
                                 return response.json();
                             })
                             .then(data => {
-                                if (this.instance) {
-                                    const currentEventIds = this.instance.getEvents().map(e => parseInt(e.id));
-                                    const foundNew = data.filter(a => !currentEventIds.includes(a.id));
-                                    if (foundNew.length > 0) {
-                                        newAppointments.push(...foundNew);
-                                        document.getElementById('notificationBadge').style.display = 'block';
-                                    }
+                                const newApiEventIds = data.map(a => a.id);
+
+                                const foundNew = data.filter(a => !oldEventIds.includes(a.id));
+                                if (foundNew.length > 0) {
+                                    newAppointments.push(...foundNew);
+                                }
+
+                                const cancelledIds = oldEventIds.filter(id => !newApiEventIds.includes(id));
+                                if (cancelledIds.length > 0) {
+                                    const cancelledEvents = cancelledIds.map(id => this.instance.getEventById(id)).filter(e => e);
+                                    newCancellations.push(...cancelledEvents);
+                                }
+
+                                if (foundNew.length > 0 || cancelledIds.length > 0) {
+                                    document.getElementById('notificationBadge').style.display = 'block';
                                 }
                                 
                                 const events = data.map(appointment => {
@@ -1671,6 +1682,13 @@
                         };
                     },
 
+                    eventClick: (info) => {
+                        console.log("Event clicked:", info);
+                        console.log("Event object:", info.event);
+                        console.log("Calling openBookingModal to edit...");
+                        openBookingModal(info.event, null);
+                    },
+
                     eventDidMount: function(info) {
                         tippy(info.el, {
                             content: `
@@ -1721,7 +1739,6 @@
                     }
 
                     if (businessHours.length > 0) {
-                        // slotMaxTime is exclusive. To show the slot ending at 22:00, the view must extend to 23:00.
                         const slotMaxHour = Math.min(24, maxHour + 1);
 
                         return {
@@ -1820,13 +1837,25 @@
             e.stopPropagation();
             notificationDropdown.style.display = notificationDropdown.style.display === 'block' ? 'none' : 'block';
             
-            if (notificationDropdown.style.display === 'block' && newAppointments.length > 0) {
-                notificationDropdown.innerHTML = newAppointments.map(a => `
-                    <div class="notification-item">
+            if (notificationDropdown.style.display === 'block' && (newAppointments.length > 0 || newCancellations.length > 0)) {
+                let content = '';
+                
+                content += newAppointments.map(a => `
+                    <div class="notification-item" style="background-color: #dcfce7;">
                         <strong>Novo agendamento:</strong> ${a.pet_name} - ${a.service}
                     </div>
                 `).join('');
+
+                content += newCancellations.map(e => `
+                    <div class="notification-item" style="background-color: #fef2f2;">
+                        <strong>Agendamento cancelado:</strong> ${e.title}
+                    </div>
+                `).join('');
+
+                notificationDropdown.innerHTML = content;
+                
                 newAppointments = [];
+                newCancellations = [];
                 document.getElementById('notificationBadge').style.display = 'none';
             }
         });
@@ -1847,7 +1876,12 @@
             loadReminderSettings();
             checkWhatsappStatus();
             
+            // Re-introduce periodic fetching for real-time updates
             setInterval(() => {
+                console.log("Verificando novos agendamentos e status...");
+                if (CalendarApp.instance) {
+                    CalendarApp.refetchEvents();
+                }
                 checkWhatsappStatus();
             }, 30000);
         });
