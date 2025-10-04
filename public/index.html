@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PetCare Pro - Sistema de Agendamento</title>
-    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <script src="https://unpkg.com/popper.js@1"></script>
@@ -30,6 +29,7 @@
             --radius-md: 0.5rem;
             --radius-lg: 0.75rem;
             --radius-xl: 1rem;
+            --sidebar-width: 280px;
         }
 
         * {
@@ -44,6 +44,7 @@
             color: var(--text-primary);
             line-height: 1.6;
             font-size: 14px;
+            overflow-x: hidden;
         }
 
         .container {
@@ -52,12 +53,122 @@
             padding: 0 24px;
         }
 
+        /* Sidebar */
+        .sidebar {
+            width: var(--sidebar-width);
+            background-color: var(--surface-color);
+            border-right: 1px solid var(--border-color);
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 32px;
+            z-index: 1100;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            overflow-y: auto;
+        }
+
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1050;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .sidebar-overlay.active {
+            display: block;
+            opacity: 1;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary-color);
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .logo i {
+            font-size: 32px;
+        }
+
+        .menu {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 14px 16px;
+            border-radius: var(--radius-md);
+            color: var(--text-secondary);
+            font-weight: 500;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .menu-item i {
+            font-size: 18px;
+            width: 20px;
+            text-align: center;
+        }
+
+        .menu-item:hover {
+            background-color: var(--background-color);
+            color: var(--primary-color);
+            transform: translateX(4px);
+        }
+
+        .menu-item.active {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+            color: white;
+            box-shadow: var(--shadow-md);
+        }
+
+        .menu-item.active::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 4px;
+            height: 60%;
+            background: white;
+            border-radius: 0 4px 4px 0;
+        }
+
+        /* Main Container */
+        .main-container {
+            margin-left: var(--sidebar-width);
+            min-height: 100vh;
+            transition: margin-left 0.3s ease;
+        }
+
         /* Header */
         .header {
             background: var(--surface-color);
             border-bottom: 1px solid var(--border-color);
             padding: 20px 0;
-            margin-bottom: 32px;
             position: sticky;
             top: 0;
             z-index: 100;
@@ -70,17 +181,19 @@
             align-items: center;
         }
 
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 12px;
+        .hamburger-menu {
+            display: none;
             font-size: 24px;
-            font-weight: 700;
-            color: var(--primary-color);
+            cursor: pointer;
+            color: var(--text-primary);
+            padding: 8px;
+            border-radius: var(--radius-md);
+            transition: all 0.2s ease;
         }
 
-        .logo i {
-            font-size: 32px;
+        .hamburger-menu:hover {
+            background-color: var(--background-color);
+            color: var(--primary-color);
         }
 
         .header-actions {
@@ -94,6 +207,14 @@
             position: relative;
             cursor: pointer;
             color: var(--text-secondary);
+            padding: 8px;
+            border-radius: var(--radius-md);
+            transition: all 0.2s ease;
+        }
+
+        .notification-bell:hover {
+            background-color: var(--background-color);
+            color: var(--primary-color);
         }
 
         .notification-bell .fa-bell {
@@ -102,32 +223,45 @@
 
         .notification-badge {
             position: absolute;
-            top: -5px;
-            right: -8px;
+            top: 4px;
+            right: 4px;
             width: 12px;
             height: 12px;
             background-color: var(--danger-color);
             border-radius: 50%;
             border: 2px solid var(--surface-color);
-            display: none; /* Hidden by default */
+            display: none;
+            animation: pulse-badge 2s infinite;
+        }
+
+        @keyframes pulse-badge {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
         }
 
         #notificationDropdown {
             position: absolute;
-            top: 30px;
+            top: 45px;
             right: 0;
-            width: 300px;
+            width: 320px;
             background-color: var(--surface-color);
             border-radius: var(--radius-lg);
             box-shadow: var(--shadow-lg);
             border: 1px solid var(--border-color);
             display: none;
             z-index: 110;
+            max-height: 400px;
+            overflow-y: auto;
         }
 
         .notification-item {
             padding: 12px 16px;
             border-bottom: 1px solid var(--border-color);
+            transition: background-color 0.2s ease;
+        }
+
+        .notification-item:hover {
+            background-color: var(--background-color);
         }
 
         .notification-item:last-child {
@@ -138,10 +272,11 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            padding: 8px 16px;
+            padding: 10px 18px;
             border-radius: var(--radius-lg);
             font-size: 13px;
             font-weight: 500;
+            transition: all 0.2s ease;
         }
 
         .status-indicator.connected {
@@ -187,13 +322,13 @@
             border: 1px solid var(--border-color);
             border-radius: var(--radius-xl);
             padding: 24px;
-            transition: all 0.2s ease;
+            transition: all 0.3s ease;
             position: relative;
             overflow: hidden;
         }
 
         .metric-card:hover {
-            transform: translateY(-2px);
+            transform: translateY(-4px);
             box-shadow: var(--shadow-lg);
             border-color: var(--primary-light);
         }
@@ -258,26 +393,6 @@
             color: var(--danger-color);
         }
 
-        /* Main Content */
-        .main-content {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 32px;
-            margin-bottom: 40px;
-        }
-
-        @media (max-width: 1200px) {
-            .main-content {
-                grid-template-columns: 1fr 1fr;
-            }
-        }
-
-        @media (max-width: 768px) {
-            .main-content {
-                grid-template-columns: 1fr;
-            }
-        }
-
         /* Section Cards */
         .section-card {
             background: var(--surface-color);
@@ -285,14 +400,17 @@
             border-radius: var(--radius-xl);
             overflow: hidden;
             box-shadow: var(--shadow-sm);
+            margin-bottom: 24px;
         }
 
         .section-header {
-            padding: 24px 24px 0;
+            padding: 24px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+            flex-wrap: wrap;
+            gap: 16px;
         }
 
         .section-title {
@@ -305,7 +423,7 @@
         }
 
         .section-content {
-            padding: 0 24px 24px;
+            padding: 24px;
         }
 
         /* Buttons */
@@ -386,6 +504,8 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 8px;
+            flex-wrap: wrap;
+            gap: 12px;
         }
 
         .item-title {
@@ -402,11 +522,15 @@
         .item-actions {
             display: flex;
             gap: 8px;
+            flex-wrap: wrap;
         }
 
         .item-meta {
             font-size: 13px;
             color: var(--text-secondary);
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
         }
 
         /* Calendar Section */
@@ -440,6 +564,7 @@
             display: flex;
             align-items: center;
             gap: 16px;
+            flex-wrap: wrap;
         }
 
         .filter-group {
@@ -457,13 +582,29 @@
         }
 
         #calendar-container {
+            position: relative; /* Added for spinner positioning */
             height: 80vh;
             min-height: 600px;
+        }
+
+        #calendar-loading-spinner {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.7);
+            z-index: 10;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
 
         #calendar {
             border-radius: var(--radius-lg);
             overflow: hidden;
+            height: 100%;
+            min-height: 600px;
         }
 
         /* Form Elements */
@@ -563,6 +704,7 @@
             justify-content: flex-end;
             border-top: 1px solid var(--border-color);
             margin-top: 24px;
+            flex-wrap: wrap;
         }
 
         /* Tabs */
@@ -570,6 +712,8 @@
             display: flex;
             border-bottom: 1px solid var(--border-color);
             margin-bottom: 24px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
         }
 
         .tab-link {
@@ -580,6 +724,7 @@
             transition: all 0.2s ease;
             color: var(--text-secondary);
             font-weight: 500;
+            white-space: nowrap;
         }
 
         .tab-link.active {
@@ -595,69 +740,19 @@
             display: block;
         }
 
-        /* Responsive Design */
-        @media (max-width: 768px) {
-            .container {
-                padding: 0 16px;
-            }
-
-            .header-content {
-                flex-direction: column;
-                gap: 16px;
-                text-align: center;
-            }
-
-            .dashboard {
-                grid-template-columns: 1fr;
-                gap: 16px;
-            }
-
-            .calendar-header {
-                flex-direction: column;
-                align-items: stretch;
-            }
-
-            .calendar-controls {
-                justify-content: space-between;
-            }
-
-            .modal-content {
-                margin: 20px;
-                max-height: calc(100vh - 40px);
-            }
+        /* Page Content */
+        .page-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
         }
 
-        /* Custom FullCalendar Styles */
-        .fc-theme-standard .fc-scrollgrid {
-            border-radius: var(--radius-lg);
-            border-color: var(--border-color);
+        .page-content.active {
+            display: block;
         }
 
-        .fc-theme-standard .fc-scrollgrid-section > * {
-            border-color: var(--border-color);
-        }
-
-        .fc-theme-standard .fc-col-header-cell {
-            background: var(--background-color);
-            font-weight: 600;
-            color: var(--text-secondary);
-        }
-
-        .fc-theme-standard .fc-daygrid-day {
-            background: var(--surface-color);
-        }
-
-        .fc-theme-standard .fc-daygrid-day:hover {
-            background: var(--background-color);
-        }
-
-        .fc-event {
-            background: var(--primary-color) !important;
-            border-color: var(--primary-dark) !important;
-            border-radius: var(--radius-sm) !important;
-            font-size: 12px !important;
-            box-shadow: var(--shadow-sm);
-            cursor: pointer;
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         /* Loading States */
@@ -703,126 +798,239 @@
             font-size: 14px;
         }
 
-        /* Sidebar */
-        .sidebar {
-            width: 250px;
-            background-color: var(--surface-color);
-            border-right: 1px solid var(--border-color);
-            position: fixed;
-            top: 0;
-            left: 0;
-            height: 100%;
-            padding: 24px;
-            display: flex;
-            flex-direction: column;
-            gap: 40px;
+        /* Custom FullCalendar Styles */
+        .fc-theme-standard .fc-scrollgrid {
+            border-radius: var(--radius-lg);
+            border-color: var(--border-color);
         }
 
-        .sidebar .logo {
-            margin-bottom: 40px;
+        .fc-theme-standard .fc-scrollgrid-section > * {
+            border-color: var(--border-color);
         }
 
-        .menu {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-
-        .menu-item {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            padding: 12px 16px;
-            border-radius: var(--radius-md);
+        .fc-theme-standard .fc-col-header-cell {
+            background: var(--background-color);
+            font-weight: 600;
             color: var(--text-secondary);
-            font-weight: 500;
-            text-decoration: none;
-            transition: all 0.2s ease;
         }
 
-        .menu-item:hover {
-            background-color: var(--background-color);
-            color: var(--primary-color);
+        .fc-theme-standard .fc-daygrid-day {
+            background: var(--surface-color);
         }
 
-        .menu-item.active {
-            background-color: var(--primary-light);
-            color: white;
+        .fc-theme-standard .fc-daygrid-day:hover {
+            background: var(--background-color);
         }
 
-        .main-container {
-            margin-left: 250px;
-        }
-
-        .page-content {
-            display: none;
-        }
-
-        .page-content.active {
-            display: block;
-        }
-
-        /* Responsive Sidebar */
-        @media (max-width: 768px) {
-            .sidebar {
-                left: -250px;
-                transition: left 0.3s ease;
-                z-index: 1100;
-            }
-
-            .sidebar.active {
-                left: 0;
-            }
-
-            .main-container {
-                margin-left: 0;
-            }
-
-            .header {
-                padding: 16px 0;
-            }
-
-            .header-content {
-                justify-content: space-between;
-            }
-
-            .hamburger-menu {
-                display: block;
-                font-size: 24px;
-                cursor: pointer;
-            }
-        }
-
-        .hamburger-menu {
-            display: none;
+        .fc-event {
+            background: var(--primary-color) !important;
+            border-color: var(--primary-dark) !important;
+            border-radius: var(--radius-sm) !important;
+            font-size: 12px !important;
+            box-shadow: var(--shadow-sm);
+            cursor: pointer;
         }
 
         .fc-timegrid-now-indicator-line {
             border-color: red !important;
             border-width: 2px 0px 0px;
         }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            :root {
+                --sidebar-width: 250px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 16px;
+            }
+
+            .sidebar {
+                transform: translateX(-100%) !important;
+                box-shadow: none;
+            }
+
+            .sidebar.mobile-visible {
+                transform: translateX(0) !important;
+                box-shadow: var(--shadow-lg);
+            }
+
+            .main-container {
+                margin-left: 0;
+            }
+
+            .hamburger-menu {
+                display: block;
+            }
+
+            .header {
+                padding: 16px 0;
+            }
+
+            .header-actions {
+                gap: 12px;
+            }
+
+            .status-indicator {
+                padding: 8px 12px;
+                font-size: 12px;
+            }
+
+            .status-indicator span {
+                display: none;
+            }
+
+            .dashboard {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+
+            .calendar-header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .calendar-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            #calendar-container {
+                height: auto;
+                min-height: 550px;
+                overflow-x: hidden; /* Prevent horizontal scroll */
+            }
+
+            #calendar {
+                min-height: 550px;
+            }
+
+            .fc .fc-toolbar {
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .fc .fc-toolbar-chunk {
+                display: flex;
+                justify-content: center;
+            }
+
+            .fc .fc-button {
+                padding: 8px 12px;
+                font-size: 12px;
+            }
+
+            .fc .fc-toolbar-title {
+                font-size: 18px;
+            }
+
+            .modal-content {
+                margin: 20px;
+                max-height: calc(100vh - 40px);
+            }
+
+            .section-header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .item-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .item-actions {
+                width: 100%;
+            }
+
+            .item-actions button {
+                flex: 1;
+            }
+
+            .modal-footer {
+                flex-direction: column-reverse;
+            }
+
+            .modal-footer button {
+                width: 100%;
+            }
+
+            #notificationDropdown {
+                width: 280px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .logo {
+                font-size: 20px;
+            }
+
+            .logo i {
+                font-size: 28px;
+            }
+
+            .metric-value {
+                font-size: 28px;
+            }
+
+            .section-title {
+                font-size: 16px;
+            }
+
+            .calendar-title {
+                font-size: 18px;
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="sidebar">
+    <!-- Sidebar Overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
         <div class="logo">
             <i class="fas fa-paw"></i>
             <span>PetCare Pro</span>
         </div>
         <ul class="menu">
-            <li><a href="#" class="menu-item active" data-target="dashboard-section"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
-            <li><a href="#" class="menu-item" data-target="calendar-section"><i class="fas fa-calendar-alt"></i> Agenda</a></li>
-            <li><a href="#" class="menu-item" data-target="services-section"><i class="fas fa-cut"></i> Serviços</a></li>
-            <li><a href="#" class="menu-item" data-target="professionals-section"><i class="fas fa-user-tie"></i> Profissionais</a></li>
-            <li><a href="#" class="menu-item" data-target="customers-section"><i class="fas fa-users"></i> Clientes</a></li>
-            <li><a href="#" class="menu-item" data-target="settings-section"><i class="fas fa-cog"></i> Configurações</a></li>
+            <li><a href="#" class="menu-item active" data-target="dashboard-section">
+                <i class="fas fa-tachometer-alt"></i>
+                <span>Dashboard</span>
+            </a></li>
+            <li><a href="#" class="menu-item" data-target="calendar-section">
+                <i class="fas fa-calendar-alt"></i>
+                <span>Agenda</span>
+            </a></li>
+            <li><a href="#" class="menu-item" data-target="services-section">
+                <i class="fas fa-cut"></i>
+                <span>Serviços</span>
+            </a></li>
+            <li><a href="#" class="menu-item" data-target="professionals-section">
+                <i class="fas fa-user-tie"></i>
+                <span>Profissionais</span>
+            </a></li>
+            <li><a href="#" class="menu-item" data-target="customers-section">
+                <i class="fas fa-users"></i>
+                <span>Clientes</span>
+            </a></li>
+            <li><a href="#" class="menu-item" data-target="settings-section">
+                <i class="fas fa-cog"></i>
+                <span>Configurações</span>
+            </a></li>
         </ul>
     </div>
+
+    <!-- Main Container -->
     <div class="main-container">
+        <!-- Header -->
         <div class="header">
             <div class="container">
                 <div class="header-content">
-                    <div class="hamburger-menu">
+                    <div class="hamburger-menu" id="hamburgerMenu">
                         <i class="fas fa-bars"></i>
                     </div>
                     <div class="header-actions">
@@ -840,9 +1048,10 @@
             </div>
         </div>
 
+        <!-- Page Content -->
         <div class="container">
+            <!-- Dashboard Section -->
             <div class="page-content active" id="dashboard-section">
-                <!-- Dashboard Metrics -->
                 <div class="dashboard">
                     <div class="metric-card">
                         <div class="metric-header">
@@ -894,8 +1103,8 @@
                 </div>
             </div>
 
+            <!-- Calendar Section -->
             <div class="page-content" id="calendar-section">
-                <!-- Calendar Section -->
                 <div class="calendar-section">
                     <div class="calendar-header">
                         <h2 class="calendar-title">
@@ -905,7 +1114,7 @@
                         <div class="calendar-controls">
                             <div class="filter-group">
                                 <label class="filter-label">Filtrar por profissional</label>
-                                <select class="form-select" id="professionalFilter" onchange="loadAppointments()">
+                                <select class="form-select" id="professionalFilter" onchange="CalendarApp.refetchEvents()">
                                     <option value="all">Todos os profissionais</option>
                                 </select>
                             </div>
@@ -916,23 +1125,27 @@
                         </div>
                     </div>
                     <div id="calendar-container">
+                        <div id="calendar-loading-spinner" style="display: none;">
+                            <div class="spinner"></div>
+                        </div>
                         <div id="calendar"></div>
                     </div>
                 </div>
             </div>
 
+            <!-- Services Section -->
             <div class="page-content" id="services-section">
-                <!-- Services Section -->
                 <div class="section-card">
                     <div class="section-header">
                         <h2 class="section-title">
                             <i class="fas fa-cut"></i>
                             Serviços
                         </h2>
-                                            <button class="btn btn-primary btn-sm" onclick="openServiceModal(true)">
-                                                <i class="fas fa-plus"></i>
-                                                Novo Serviço
-                                            </button>                    </div>
+                        <button class="btn btn-primary btn-sm" onclick="openServiceModal(true)">
+                            <i class="fas fa-plus"></i>
+                            Novo Serviço
+                        </button>
+                    </div>
                     <div class="section-content">
                         <div class="item-list" id="servicesList">
                             <div class="empty-state">
@@ -945,8 +1158,8 @@
                 </div>
             </div>
 
+            <!-- Professionals Section -->
             <div class="page-content" id="professionals-section">
-                <!-- Professionals Section -->
                 <div class="section-card">
                     <div class="section-header">
                         <h2 class="section-title">
@@ -970,8 +1183,8 @@
                 </div>
             </div>
 
+            <!-- Customers Section -->
             <div class="page-content" id="customers-section">
-                <!-- Customers Section -->
                 <div class="section-card">
                     <div class="section-header">
                         <h2 class="section-title">
@@ -995,98 +1208,97 @@
                 </div>
             </div>
 
+            <!-- Settings Section -->
             <div class="page-content" id="settings-section">
-                <!-- Settings Section -->
-                <div class="main-content" style="margin-top: 40px;">
-                    <!-- Date Settings Section -->
-                    <div class="section-card">
-                        <div class="section-header">
-                            <h2 class="section-title">
-                                <i class="fas fa-calendar-cog"></i>
-                                Configurações de Datas
-                            </h2>
-                            <button class="btn btn-primary btn-sm" onclick="openDateSettingsModal()">
-                                <i class="fas fa-cog"></i>
-                                Configurar
-                            </button>
-                        </div>
-                        <div class="section-content">
-                            <div id="dateSettingsInfo">
-                                <div class="item-meta">
-                                    <div><i class="fas fa-calendar-day"></i> Dias para mostrar: <span id="daysToShowInfo">5</span></div>
-                                    <div><i class="fas fa-ban"></i> Excluir fins de semana: <span id="excludeWeekendsInfo">Sim</span></div>
-                                    <div><i class="fas fa-clock"></i> Começar a partir de: <span id="startFromInfo">Amanhã</span></div>
-                                </div>
-                            </div>
-                        </div>
+                <!-- Date Settings Section -->
+                <div class="section-card">
+                    <div class="section-header">
+                        <h2 class="section-title">
+                            <i class="fas fa-calendar-cog"></i>
+                            Configurações de Datas
+                        </h2>
+                        <button class="btn btn-primary btn-sm" onclick="openDateSettingsModal()">
+                            <i class="fas fa-cog"></i>
+                            Configurar
+                        </button>
                     </div>
-
-                    <!-- Time Settings Section -->
-                    <div class="section-card">
-                        <div class="section-header">
-                            <h2 class="section-title">
-                                <i class="fas fa-clock"></i>
-                                Configurações de Horários
-                            </h2>
-                            <button class="btn btn-primary btn-sm" onclick="openTimeSettingsModal()">
-                                <i class="fas fa-cog"></i>
-                                Configurar
-                            </button>
-                        </div>
-                        <div class="section-content">
-                            <div id="timeSettingsInfo">
-                                <div class="item-meta">
-                                    <div><i class="fas fa-play"></i> Horário de início: <span id="startTimeInfo">09:00</span></div>
-                                    <div><i class="fas fa-stop"></i> Horário de fim: <span id="endTimeInfo">17:00</span></div>
-                                    <div><i class="fas fa-clock"></i> Intervalo: <span id="intervalInfo">60 min</span></div>
-                                    <div><i class="fas fa-utensils"></i> Pausa para almoço: <span id="lunchBreakInfo">12:00 - 13:00</span></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Bot Settings Section -->
-                    <div class="section-card">
-                        <div class="section-header">
-                            <h2 class="section-title">
-                                <i class="fas fa-robot"></i>
-                                Configurações do Chatbot
-                            </h2>
-                        </div>
-                        <div class="section-content">
+                    <div class="section-content">
+                        <div id="dateSettingsInfo">
                             <div class="item-meta">
-                                <div><i class="fas fa-info-circle"></i> As datas e horários configurados acima serão utilizados pelo chatbot do WhatsApp</div>
-                                <div><i class="fas fa-sync-alt"></i> As alterações são aplicadas automaticamente</div>
+                                <div><i class="fas fa-calendar-day"></i> Dias para mostrar: <span id="daysToShowInfo">5</span></div>
+                                <div><i class="fas fa-ban"></i> Excluir fins de semana: <span id="excludeWeekendsInfo">Sim</span></div>
+                                <div><i class="fas fa-clock"></i> Começar a partir de: <span id="startFromInfo">Amanhã</span></div>
                             </div>
                         </div>
                     </div>
+                </div>
 
-                    <!-- Reminder Settings Section -->
-                    <div class="section-card">
-                        <div class="section-header">
-                            <h2 class="section-title">
-                                <i class="fas fa-bell"></i>
-                                Configurações de Lembretes
-                            </h2>
+                <!-- Time Settings Section -->
+                <div class="section-card">
+                    <div class="section-header">
+                        <h2 class="section-title">
+                            <i class="fas fa-clock"></i>
+                            Configurações de Horários
+                        </h2>
+                        <button class="btn btn-primary btn-sm" onclick="openTimeSettingsModal()">
+                            <i class="fas fa-cog"></i>
+                            Configurar
+                        </button>
+                    </div>
+                    <div class="section-content">
+                        <div id="timeSettingsInfo">
+                            <div class="item-meta">
+                                <div><i class="fas fa-play"></i> Horário de início: <span id="startTimeInfo">09:00</span></div>
+                                <div><i class="fas fa-stop"></i> Horário de fim: <span id="endTimeInfo">17:00</span></div>
+                                <div><i class="fas fa-clock"></i> Intervalo: <span id="intervalInfo">60 min</span></div>
+                                <div><i class="fas fa-utensils"></i> Pausa para almoço: <span id="lunchBreakInfo">12:00 - 13:00</span></div>
+                            </div>
                         </div>
-                        <div class="section-content">
-                            <form id="reminderSettingsForm">
-                                <div class="form-group">
-                                    <label class="form-label">Intervalo de lembrete (horas)</label>
-                                    <input type="number" class="form-input" id="reminderInterval" min="1" max="168" required>
-                                </div>
-                                <button type="submit" class="btn btn-primary">
-                                    <i class="fas fa-save"></i>
-                                    Salvar
-                                </button>
-                            </form>
+                    </div>
+                </div>
+
+                <!-- Bot Settings Section -->
+                <div class="section-card">
+                    <div class="section-header">
+                        <h2 class="section-title">
+                            <i class="fas fa-robot"></i>
+                            Configurações do Chatbot
+                        </h2>
+                    </div>
+                    <div class="section-content">
+                        <div class="item-meta">
+                            <div><i class="fas fa-info-circle"></i> As datas e horários configurados acima serão utilizados pelo chatbot do WhatsApp</div>
+                            <div><i class="fas fa-sync-alt"></i> As alterações são aplicadas automaticamente</div>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Reminder Settings Section -->
+                <div class="section-card">
+                    <div class="section-header">
+                        <h2 class="section-title">
+                            <i class="fas fa-bell"></i>
+                            Configurações de Lembretes
+                        </h2>
+                    </div>
+                    <div class="section-content">
+                        <form id="reminderSettingsForm">
+                            <div class="form-group">
+                                <label class="form-label">Intervalo de lembrete (horas)</label>
+                                <input type="number" class="form-input" id="reminderInterval" min="1" max="168" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i>
+                                Salvar
+                            </button>
+                        </form>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Modals (Service, Professional, Booking, Customer, Date Settings, Time Settings) -->
     <!-- Service Modal -->
     <div class="modal" id="serviceModal">
         <div class="modal-content">
@@ -1313,219 +1525,332 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
     <script>
-        const API_URL = 'https://petagendamentov1-2.onrender.com/api';
-        let calendar;
-        let allNotifications = [];
+        const API_URL = '/api';
+        let newAppointments = [];
 
-        document.addEventListener('DOMContentLoaded', () => {
-            initializeCalendar();
-            loadInitialData();
-            setupPolling();
-            setupNotificationBell();
-            
-            // Set minimum date for booking to today
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('date').min = today;
+        function isWithinBusinessHours(date, businessHours) {
+            const dayOfWeek = date.getDay(); // Sunday = 0, ...
+            const time = date.toTimeString().slice(0, 8); // "HH:mm:ss"
 
-            // Menu navigation
-            const menuItems = document.querySelectorAll('.menu-item');
-            const pageContents = document.querySelectorAll('.page-content');
-
-            menuItems.forEach(item => {
-                item.addEventListener('click', (e) => {
-                    e.preventDefault();
-
-                    const target = item.getAttribute('data-target');
-
-                    menuItems.forEach(i => i.classList.remove('active'));
-                    item.classList.add('active');
-
-                    pageContents.forEach(content => {
-                        if (content.id === target) {
-                            content.classList.add('active');
-                        }
-                        else {
-                            content.classList.remove('active');
-                        }
-                    });
-
-                    if (target === 'calendar-section' && calendar) {
-                        calendar.changeView('timeGridWeek');
-                        setTimeout(() => {
-                            const nowIndicator = document.querySelector('.fc-timegrid-now-indicator-line');
-                            if (nowIndicator) {
-                                nowIndicator.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                            } else {
-                                const now = new Date();
-                                calendar.scrollToTime(now.toTimeString().slice(0,8));
-                            }
-                        }, 200);
+            for (const bh of businessHours) {
+                if (bh.daysOfWeek.includes(dayOfWeek)) {
+                    // It's a business day, now check the time
+                    // The end time is exclusive, so we use '<'
+                    if (time >= bh.startTime && time < bh.endTime) {
+                        return true;
                     }
-                });
-            });
-
-            // Hamburger menu
-            const hamburgerMenu = document.querySelector('.hamburger-menu');
-            const sidebar = document.querySelector('.sidebar');
-
-            hamburgerMenu.addEventListener('click', () => {
-                sidebar.classList.toggle('active');
-            });
-
-            document.addEventListener('click', (e) => {
-                if (!sidebar.contains(e.target) && !hamburgerMenu.contains(e.target)) {
-                    sidebar.classList.remove('active');
                 }
-            });
+            }
+            return false;
+        }
 
-            window.addEventListener('resize', () => {
-                if (calendar) {
-                    calendar.updateSize();
+        const CalendarApp = {
+            instance: null,
+            apiUrl: API_URL,
+
+            async init() {
+                const calendarEl = document.getElementById('calendar');
+                try {
+                    const options = await this.getOptions();
+                    this.instance = new FullCalendar.Calendar(calendarEl, options);
+                    this.instance.render();
+                } catch (error) {
+                    console.error("Falha ao inicializar o calendário:", error);
+                    calendarEl.innerHTML = '<p style="color: red; padding: 20px;">Erro ao carregar o calendário. Verifique as configurações e a conexão com a API.</p>';
+                }
+            },
+
+            async getOptions() {
+                const timeSettings = await this.fetchTimeSettings();
+                const isMobile = window.innerWidth <= 768;
+
+                return {
+                    initialView: isMobile ? 'timeGridDay' : 'timeGridWeek',
+                    headerToolbar: this.getToolbarOptions(isMobile),
+                    nowIndicator: true,
+                    locale: 'pt-br',
+                    height: 'auto',
+                    allDaySlot: false,
+                    businessHours: timeSettings.businessHours,
+                    slotMinTime: timeSettings.slotMinTime,
+                    slotMaxTime: timeSettings.slotMaxTime,
+                    
+                    events: (fetchInfo, successCallback, failureCallback) => {
+                        const professionalId = document.getElementById('professionalFilter').value;
+                        const url = professionalId === 'all' 
+                            ? `${this.apiUrl}/appointments` 
+                            : `${this.apiUrl}/appointments/professional/${professionalId}`;
+                        
+                        fetch(`${url}?t=${new Date().getTime()}`)
+                            .then(response => {
+                                if (!response.ok) throw new Error('Falha ao buscar agendamentos.');
+                                return response.json();
+                            })
+                            .then(data => {
+                                if (this.instance) {
+                                    const currentEventIds = this.instance.getEvents().map(e => parseInt(e.id));
+                                    const foundNew = data.filter(a => !currentEventIds.includes(a.id));
+                                    if (foundNew.length > 0) {
+                                        newAppointments.push(...foundNew);
+                                        document.getElementById('notificationBadge').style.display = 'block';
+                                    }
+                                }
+                                
+                                const events = data.map(appointment => {
+                                    const start = new Date(`${appointment.date}T${appointment.time}`);
+                                    const end = new Date(start.getTime() + appointment.duration * 60000);
+                                    return {
+                                        id: appointment.id,
+                                        title: `${appointment.pet_name} (${appointment.service})`,
+                                        start: start.toISOString(),
+                                        end: end.toISOString(),
+                                        extendedProps: {
+                                            professional: appointment.professional_name,
+                                            owner: appointment.owner_name,
+                                            phone: appointment.phone,
+                                            service: appointment.service,
+                                            professional_id: appointment.professional_id,
+                                            duration: appointment.duration
+                                        }
+                                    };
+                                });
+                                successCallback(events);
+                            })
+                            .catch(error => {
+                                console.error("Erro ao carregar eventos do calendário:", error);
+                                failureCallback(error);
+                            });
+                    },
+
+                    loading: function(isLoading) {
+                        const spinner = document.getElementById('calendar-loading-spinner');
+                        if (spinner) {
+                            spinner.style.display = isLoading ? 'flex' : 'none';
+                        }
+                    },
+
+                    dateClick: (info) => {
+                        const calendar = info.view.calendar;
+                        const businessHours = calendar.getOption('businessHours');
+                        
+                        if (isWithinBusinessHours(info.date, businessHours)) {
+                            openBookingModal(null, info);
+                        } else {
+                            console.log("Cannot book in a non-business hour slot.");
+                            info.dayEl.style.backgroundColor = '#fef2f2';
+                            setTimeout(() => { info.dayEl.style.backgroundColor = '' }, 200);
+                        }
+                    },
+                    
+                    windowResize: (arg) => {
+                        const newIsMobile = window.innerWidth <= 768;
+                        if (this.instance) {
+                            this.instance.setOption('headerToolbar', this.getToolbarOptions(newIsMobile));
+                            if (newIsMobile && this.instance.view.type === 'timeGridWeek') {
+                                this.instance.changeView('timeGridDay');
+                            } else if (!newIsMobile && this.instance.view.type === 'timeGridDay') {
+                                this.instance.changeView('timeGridWeek');
+                            }
+                        }
+                    },
+
+                    eventContent: function(arg) {
+                        return {
+                            html: `
+                                <div class="fc-event-main-frame">
+                                    <div class="fc-event-time">${arg.timeText}</div>
+                                    <div class="fc-event-title-container">
+                                        <div class="fc-event-title fc-sticky">${arg.event.title}</div>
+                                        <div class="fc-event-professional">- ${arg.event.extendedProps.professional || 'N/A'}</div>
+                                    </div>
+                                </div>
+                            `
+                        };
+                    },
+
+                    eventDidMount: function(info) {
+                        tippy(info.el, {
+                            content: `
+                                <strong>Serviço:</strong> ${info.event.extendedProps.service}<br>
+                                <strong>Profissional:</strong> ${info.event.extendedProps.professional || 'N/A'}<br>
+                                <strong>Dono:</strong> ${info.event.extendedProps.owner}<br>
+                                <strong>Telefone:</strong> ${info.event.extendedProps.phone}
+                            `,
+                            allowHTML: true,
+                        });
+                    }
+                };
+            },
+
+            async fetchTimeSettings() {
+                const defaultOptions = {
+                    businessHours: [{ daysOfWeek: [1, 2, 3, 4, 5], startTime: '09:00', endTime: '18:00' }],
+                    slotMinTime: '09:00:00',
+                    slotMaxTime: '18:00:00'
+                };
+                try {
+                    const response = await fetch(`${this.apiUrl}/time-settings?t=${new Date().getTime()}`);
+                    if (!response.ok) throw new Error('Failed to fetch time settings');
+                    const settings = await response.json();
+                    console.log('Configurações de horário recebidas da API:', settings);
+                    const config = settings.config;
+                    const businessHours = [];
+                    const dayMapping = { monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6, sunday: 0 };
+                    
+                    let minHour = 24;
+                    let maxHour = 0;
+
+                    for (const dayName in dayMapping) {
+                        const dayConfig = config[dayName];
+                        if (dayConfig && dayConfig.startTime && dayConfig.endTime) {
+                            businessHours.push({
+                                daysOfWeek: [dayMapping[dayName]],
+                                startTime: dayConfig.startTime,
+                                endTime: dayConfig.endTime
+                            });
+                            
+                            const startHour = parseInt(dayConfig.startTime.split(':')[0]);
+                            const endHour = parseInt(dayConfig.endTime.split(':')[0]);
+
+                            if (startHour < minHour) minHour = startHour;
+                            if (endHour > maxHour) maxHour = endHour;
+                        }
+                    }
+
+                    if (businessHours.length > 0) {
+                        // slotMaxTime is exclusive. To show the slot ending at 22:00, the view must extend to 23:00.
+                        const slotMaxHour = Math.min(24, maxHour + 1);
+
+                        return {
+                            businessHours: businessHours,
+                            slotMinTime: `${String(minHour).padStart(2, '0')}:00:00`,
+                            slotMaxTime: `${String(slotMaxHour).padStart(2, '0')}:00:00`
+                        };
+                    }
+                } catch (error) {
+                    console.error('Error fetching time settings for calendar:', error);
+                }
+                return defaultOptions;
+            },
+
+            getToolbarOptions(isMobile) {
+                if (isMobile) {
+                    return { left: 'prev,next', center: 'title', right: 'timeGridDay,dayGridMonth' };
+                }
+                return { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,timeGridDay' };
+            },
+
+            async updateSettings() {
+                try {
+                    const newSettings = await this.fetchTimeSettings();
+                    this.instance.setOption('businessHours', newSettings.businessHours);
+                    this.instance.setOption('slotMinTime', newSettings.slotMinTime);
+                    this.instance.setOption('slotMaxTime', newSettings.slotMaxTime);
+                } catch (error) {
+                    console.error("Falha ao atualizar as configurações do calendário:", error);
+                }
+            },
+
+            refetchEvents() {
+                if (this.instance) {
+                    this.instance.refetchEvents();
+                }
+            }
+        };
+
+        // Mobile Menu Toggle
+        const hamburgerMenu = document.getElementById('hamburgerMenu');
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+        hamburgerMenu.addEventListener('click', () => {
+            if (window.innerWidth <= 768) {
+                sidebar.classList.toggle('mobile-visible');
+                sidebarOverlay.classList.toggle('active');
+            }
+        });
+
+        sidebarOverlay.addEventListener('click', () => {
+            sidebar.classList.remove('mobile-visible');
+            sidebarOverlay.classList.remove('active');
+        });
+
+        // Menu Navigation
+        document.querySelectorAll('.menu-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                const targetId = item.getAttribute('data-target');
+                
+                document.querySelectorAll('.menu-item').forEach(i => i.classList.remove('active'));
+                item.classList.add('active');
+                
+                document.querySelectorAll('.page-content').forEach(page => page.classList.remove('active'));
+                document.getElementById(targetId).classList.add('active');
+                
+                if (targetId === 'calendar-section') {
+                    CalendarApp.refetchEvents();
+                    if (CalendarApp.instance) {
+                        setTimeout(() => {
+                            const now = new Date();
+                            const timeString = [
+                                now.getHours().toString().padStart(2, '0'),
+                                now.getMinutes().toString().padStart(2, '0'),
+                                now.getSeconds().toString().padStart(2, '0')
+                            ].join(':');
+                            CalendarApp.instance.scrollToTime(timeString);
+                        }, 50); 
+                    }
+                }
+                
+                if (window.innerWidth <= 768) {
+                    sidebar.classList.remove('mobile-visible');
+                    sidebarOverlay.classList.remove('active');
                 }
             });
         });
 
-        function setupPolling() {
-            setInterval(() => {
-                pollNotifications();
-                checkWhatsappStatus();
-            }, 15000); // Poll every 15 seconds
-        }
+        // Notification Bell Toggle
+        const notificationBell = document.getElementById('notificationBell');
+        const notificationDropdown = document.getElementById('notificationDropdown');
 
-        async function pollNotifications() {
-            try {
-                const response = await fetch(`${API_URL}/notifications`);
-                const notifications = await response.json();
-
-                if (notifications.length > 0) {
-                    allNotifications.unshift(...notifications);
-                    document.getElementById('notificationBadge').style.display = 'block';
-                    // Refresh data since something changed
-                    loadAppointments();
-                    loadStats();
-                }
-            } catch (error) {
-                console.error('Error polling notifications:', error);
-            }
-        }
-
-        function setupNotificationBell() {
-            const notificationBell = document.getElementById('notificationBell');
-            const dropdown = document.getElementById('notificationDropdown');
-
-            notificationBell.addEventListener('click', (event) => {
-                event.stopPropagation();
-                updateNotificationDropdown();
-                dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+        notificationBell.addEventListener('click', (e) => {
+            e.stopPropagation();
+            notificationDropdown.style.display = notificationDropdown.style.display === 'block' ? 'none' : 'block';
+            
+            if (notificationDropdown.style.display === 'block' && newAppointments.length > 0) {
+                notificationDropdown.innerHTML = newAppointments.map(a => `
+                    <div class="notification-item">
+                        <strong>Novo agendamento:</strong> ${a.pet_name} - ${a.service}
+                    </div>
+                `).join('');
+                newAppointments = [];
                 document.getElementById('notificationBadge').style.display = 'none';
-            });
-
-            document.addEventListener('click', (event) => {
-                if (!notificationBell.contains(event.target)) {
-                    dropdown.style.display = 'none';
-                }
-            });
-        }
-
-        function updateNotificationDropdown() {
-            const dropdown = document.getElementById('notificationDropdown');
-            dropdown.innerHTML = '';
-
-            if (allNotifications.length === 0) {
-                dropdown.innerHTML = '<div class="notification-item">Nenhuma nova notificação</div>';
-                return;
             }
+        });
 
-            allNotifications.forEach(notification => {
-                const item = document.createElement('div');
-                item.className = 'notification-item';
-                let title = '';
-                let details = '';
+        document.addEventListener('click', () => {
+            notificationDropdown.style.display = 'none';
+        });
 
-                if (notification.type === 'new_booking' || (notification.booking && !notification.type)) { // Fallback for old format
-                    const booking = notification.booking || notification;
-                    title = '✅ Novo Agendamento:';
-                    const date = new Date(booking.date);
-                    const formattedDate = date.toLocaleDateString('pt-BR', { timeZone: 'UTC' });
-                    details = `${booking.pet_name} - ${booking.service}<br><small>${formattedDate} às ${booking.time}</small>`;
-                } else if (notification.type === 'cancellation') {
-                    const appointment = notification.appointment;
-                    title = '❌ Agendamento Cancelado:';
-                    const date = new Date(appointment.date);
-                    const formattedDate = date.toLocaleDateString('pt-BR', { timeZone: 'UTC' });
-                    details = `${appointment.pet_name} - ${appointment.service}<br><small>${formattedDate} às ${appointment.time}</small>`;
-                }
-
-                if (title) {
-                    item.innerHTML = `<strong>${title}</strong><br>${details}`;
-                    dropdown.appendChild(item);
-                }
-            });
-        }
-
-        function loadInitialData(){
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            CalendarApp.init();
             loadStats();
             loadServices();
             loadProfessionals();
-            loadAppointments(true);
             loadCustomers();
             loadDateSettings();
             loadTimeSettings();
             loadReminderSettings();
             checkWhatsappStatus();
-        }
-
-        function initializeCalendar() {
-            const calendarEl = document.getElementById('calendar');
-            calendar = new FullCalendar.Calendar(calendarEl, {
-                initialView: 'timeGridWeek',
-                nowIndicator: true,
-                headerToolbar: {
-                    left: 'prev,next today',
-                    center: 'title',
-                    right: 'dayGridMonth,timeGridWeek,timeGridDay'
-                },
-                events: [],
-                locale: 'pt-br',
-                height: 'auto',
-                eventDisplay: 'block',
-                dayMaxEvents: 3,
-                moreLinkClick: 'popover',
-                eventClick: function(info) {
-                    openBookingModal(info.event, null);
-                },
-                dateClick: function(info) {
-                    openBookingModal(null, info);
-                },
-                eventContent: function(arg) {
-                    return {
-                        html: `
-                            <div class="fc-event-main-frame">
-                                <div class="fc-event-time">${arg.timeText}</div>
-                                <div class="fc-event-title-container">
-                                    <div class="fc-event-title fc-sticky">${arg.event.title}</div>
-                                    <div class="fc-event-professional">- ${arg.event.extendedProps.professional || 'N/A'}</div>
-                                </div>
-                            </div>
-                        `
-                    };
-                },
-                eventDidMount: function(info) {
-                    tippy(info.el, {
-                        content: `
-                            <strong>Serviço:</strong> ${info.event.extendedProps.service}<br>
-                            <strong>Profissional:</strong> ${info.event.extendedProps.professional || 'N/A'}<br>
-                            <strong>Dono:</strong> ${info.event.extendedProps.owner}<br>
-                            <strong>Telefone:</strong> ${info.event.extendedProps.phone}
-                        `,
-                        allowHTML: true,
-                    });
-                }
-            });
-            calendar.render();
-        }
+            
+            setInterval(() => {
+                checkWhatsappStatus();
+            }, 30000);
+        });
 
         async function loadStats() {
             try {
@@ -1697,49 +2022,6 @@
             }
         }
 
-        async function loadAppointments(isInitialLoad = false) {
-            try {
-                const professionalId = document.getElementById('professionalFilter').value;
-                const url = professionalId === 'all' ? `${API_URL}/appointments` : `${API_URL}/appointments/professional/${professionalId}`;
-                const response = await fetch(url);
-                const appointments = await response.json();
-
-                const currentEventIds = calendar.getEvents().map(e => parseInt(e.id));
-                const foundNew = appointments.filter(a => !currentEventIds.includes(a.id));
-
-                if (!isInitialLoad && foundNew.length > 0) {
-                    newAppointments.push(...foundNew);
-                    document.getElementById('notificationBadge').style.display = 'block';
-                }
-                
-                const events = appointments.map(appointment => {
-                    const start = new Date(`${appointment.date}T${appointment.time}`);
-                    const end = new Date(start.getTime() + appointment.duration * 60000); // duration in minutes
-
-                    return {
-                        id: appointment.id,
-                        title: `${appointment.pet_name} (${appointment.service})`,
-                        start: start.toISOString(),
-                        end: end.toISOString(),
-                        extendedProps: {
-                            professional: appointment.professional_name,
-                            owner: appointment.owner_name,
-                            phone: appointment.phone,
-                            service: appointment.service,
-                            professional_id: appointment.professional_id,
-                            duration: appointment.duration
-                        }
-                    };
-                });
-
-                calendar.removeAllEvents();
-                calendar.addEventSource(events);
-
-            } catch (error) {
-                console.error('Error loading appointments:', error);
-            }
-        }
-
         async function checkWhatsappStatus() {
             const statusIndicator = document.getElementById('whatsappStatusIndicator');
             const statusDot = document.getElementById('statusDot');
@@ -1773,7 +2055,7 @@
                 document.getElementById('serviceModalTitle').textContent = 'Novo Serviço';
                 document.getElementById('serviceForm').reset();
                 document.getElementById('serviceId').value = '';
-                document.getElementById('serviceDuration').value = '60'; // Default duration
+                document.getElementById('serviceDuration').value = '60';
             } else {
                 document.getElementById('serviceModalTitle').textContent = 'Editar Serviço';
             }
@@ -1933,7 +2215,7 @@
                 try {
                     await fetch(`${API_URL}/appointments/${id}`, { method: 'DELETE' });
                     closeBookingModal();
-                    loadAppointments();
+                    CalendarApp.refetchEvents();
                     loadStats();
                     loadCustomers();
                     alert('Agendamento excluído com sucesso!');
@@ -1970,7 +2252,7 @@
 
                 if (response.ok) {
                     closeBookingModal();
-                    loadAppointments();
+                    CalendarApp.refetchEvents();
                     loadStats();
                     loadCustomers();
                     alert(`Agendamento ${id ? 'atualizado' : 'criado'} com sucesso!`);
@@ -2053,13 +2335,6 @@
             }
         }
 
-        // Close modals when clicking outside
-        document.addEventListener('click', (e) => {
-            if (e.target.classList.contains('modal')) {
-                e.target.classList.remove('active');
-            }
-        });
-
         // Date Settings Functions
         async function loadDateSettings() {
             try {
@@ -2096,7 +2371,6 @@
                 document.getElementById('excludeWeekends').checked = config.excludeWeekends || false;
                 document.getElementById('startFromTomorrow').checked = config.startFromTomorrow !== false;
 
-                // Set excluded days checkboxes
                 const excludedDays = config.excludedDays || [];
                 document.getElementById('excludeSunday').checked = excludedDays.includes(0);
                 document.getElementById('excludeMonday').checked = excludedDays.includes(1);
@@ -2149,15 +2423,13 @@
             try {
                 const response = await fetch(`${API_URL}/time-settings`);
                 const settings = await response.json();
-                updateTimeSettingsDisplay(settings.config);
+                updateDateSettingsDisplay(settings.config);
             } catch (error) {
                 console.error('Error loading time settings:', error);
             }
         }
 
-        function updateTimeSettingsDisplay(config) {
-            // This function now needs to be updated to reflect the new data structure
-            // For simplicity, we'll just show Monday's schedule for now.
+        function updateDateSettingsDisplay(config) {
             const mondayConfig = config.monday;
             if (mondayConfig) {
                 document.getElementById('startTimeInfo').textContent = mondayConfig.startTime || '09:00';
@@ -2312,7 +2584,10 @@
                 });
                 closeTimeSettingsModal();
                 loadTimeSettings();
-                alert('Configurações de horários salvas com sucesso!');
+                alert('Configurações de horários salvas! O calendário será atualizado.');
+
+                await CalendarApp.updateSettings();
+
             } catch (error) {
                 console.error('Error saving time settings:', error);
                 alert('Erro ao salvar configurações. Tente novamente.');
@@ -2324,7 +2599,7 @@
             try {
                 const response = await fetch(`${API_URL}/reminder-settings`);
                 const settings = await response.json();
-                document.getElementById('reminderInterval').value = settings.reminder_interval || 24;
+                document.getElementById('reminderInterval').value = settings.interval || 24;
             } catch (error) {
                 console.error('Error loading reminder settings:', error);
             }
@@ -2332,18 +2607,25 @@
 
         document.getElementById('reminderSettingsForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const reminder_interval = document.getElementById('reminderInterval').value;
+            const interval = parseInt(document.getElementById('reminderInterval').value);
 
             try {
                 await fetch(`${API_URL}/reminder-settings`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ reminder_interval: parseInt(reminder_interval) })
+                    body: JSON.stringify({ interval })
                 });
-                alert('Configurações de lembrete salvas com sucesso!');
+                alert('Configurações de lembretes salvas com sucesso!');
             } catch (error) {
                 console.error('Error saving reminder settings:', error);
                 alert('Erro ao salvar configurações. Tente novamente.');
+            }
+        });
+
+        // Close modals when clicking outside
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal')) {
+                e.target.classList.remove('active');
             }
         });
     </script>
