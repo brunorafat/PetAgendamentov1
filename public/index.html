@@ -1531,6 +1531,7 @@
         const API_URL = '/api';
         let newAppointments = [];
         let newCancellations = [];
+        let isInitialLoad = true;
 
         function isWithinBusinessHours(date, businessHours) {
             const dayOfWeek = date.getDay(); // Sunday = 0, ...
@@ -1593,28 +1594,30 @@
                                 return response.json();
                             })
                             .then(data => {
-                                const newApiEventIds = data.map(a => a.id);
+                                if (!isInitialLoad) {
+                                    const newApiEventIds = data.map(a => a.id);
 
-                                const foundNew = data.filter(a => !oldEventIds.includes(a.id));
-                                if (foundNew.length > 0) {
-                                    newAppointments.push(...foundNew);
-                                }
+                                    const foundNew = data.filter(a => !oldEventIds.includes(a.id));
+                                    if (foundNew.length > 0) {
+                                        newAppointments.push(...foundNew);
+                                    }
 
-                                const cancelledIds = oldEventIds.filter(id => !newApiEventIds.includes(id));
-                                if (cancelledIds.length > 0) {
-                                    const cancelledEvents = cancelledIds.map(id => this.instance.getEventById(id)).filter(e => e);
-                                    newCancellations.push(...cancelledEvents);
-                                }
+                                    const cancelledIds = oldEventIds.filter(id => !newApiEventIds.includes(id));
+                                    if (cancelledIds.length > 0) {
+                                        const cancelledEvents = cancelledIds.map(id => this.instance.getEventById(id)).filter(e => e);
+                                        newCancellations.push(...cancelledEvents);
+                                    }
 
-                                if (foundNew.length > 0 || cancelledIds.length > 0) {
-                                    document.getElementById('notificationBadge').style.display = 'block';
+                                    if (foundNew.length > 0 || cancelledIds.length > 0) {
+                                        document.getElementById('notificationBadge').style.display = 'block';
+                                    }
                                 }
                                 
                                 const events = data.map(appointment => {
                                     const start = new Date(`${appointment.date}T${appointment.time}`);
                                     const end = new Date(start.getTime() + appointment.duration * 60000);
                                     return {
-                                        id: appointment.id,
+                                        id: String(appointment.id),
                                         title: `${appointment.pet_name} (${appointment.service})`,
                                         start: start.toISOString(),
                                         end: end.toISOString(),
@@ -1641,8 +1644,18 @@
                         if (spinner) {
                             spinner.style.display = isLoading ? 'flex' : 'none';
                         }
+                        if (!isLoading) {
+                            isInitialLoad = false;
+                        }
                     },
 
+                    eventClick: (info) => {
+                        console.log("Event clicked:", info);
+                        console.log("Event object:", info.event);
+                        console.log("Calling openBookingModal to edit...");
+                        openBookingModal(info.event, null);
+                    },
+                    
                     dateClick: (info) => {
                         const calendar = info.view.calendar;
                         const businessHours = calendar.getOption('businessHours');
@@ -1680,13 +1693,6 @@
                                 </div>
                             `
                         };
-                    },
-
-                    eventClick: (info) => {
-                        console.log("Event clicked:", info);
-                        console.log("Event object:", info.event);
-                        console.log("Calling openBookingModal to edit...");
-                        openBookingModal(info.event, null);
                     },
 
                     eventDidMount: function(info) {
